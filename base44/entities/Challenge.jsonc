@@ -1,0 +1,62 @@
+{
+  "name": "Challenge",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "metric": {
+      "type": "string",
+      "enum": [
+        "steps",
+        "distance_m",
+        "minutes",
+        "energy_mwh"
+      ]
+    },
+    "target": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "starts_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "ends_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "followers",
+        "private"
+      ],
+      "default": "public"
+    },
+    "participants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_id",
+    "title",
+    "metric",
+    "target"
+  ]
+}

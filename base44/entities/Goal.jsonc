@@ -1,0 +1,49 @@
+{
+  "name": "Goal",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "metric": {
+      "type": "string",
+      "enum": [
+        "steps",
+        "minutes",
+        "energy_mwh",
+        "distance_m"
+      ]
+    },
+    "period": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "default": "daily"
+    },
+    "target": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_id",
+    "title",
+    "metric",
+    "target"
+  ]
+}

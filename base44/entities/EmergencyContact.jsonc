@@ -1,0 +1,31 @@
+{
+  "name": "EmergencyContact",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "relation": {
+      "type": "string"
+    },
+    "primary": {
+      "type": "boolean",
+      "default": false
+    },
+    "notify_on_fall": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "operator_id",
+    "name",
+    "phone"
+  ]
+}

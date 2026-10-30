@@ -1,0 +1,51 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { BluetoothOff, FlaskConical, WifiOff } from 'lucide-react';
+import { useApp } from '@/lib/store';
+import StatusPill from '@/components/sv/StatusPill';
+import { cn } from '@/lib/utils';
+
+export default function TopBar() {
+  const { ble, demoMode, setDemoMode, online } = useApp();
+  const connected = ble.status === 'connected';
+
+  return (
+    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4 sm:px-6">
+        <Link to="/" className="flex items-baseline gap-1 lg:hidden">
+          <span className="font-heading text-base font-bold tracking-tight">Step</span>
+          <span className="font-heading text-base font-bold tracking-tight text-primary">Volt</span>
+        </Link>
+
+        <div className="ml-auto flex items-center gap-2">
+          {!online && (
+            <StatusPill tone="warning" dot={false} className="hidden sm:inline-flex">
+              <WifiOff className="h-3 w-3" /> offline
+            </StatusPill>
+          )}
+          <Link to="/dispositivo" aria-label="Estado do tênis">
+            <StatusPill tone={connected ? 'connected' : 'idle'} pulse={connected}>
+              <BluetoothOff className="h-3 w-3" />
+              <span className="hidden sm:inline">{connected ? 'enlace ativo' : 'sem enlace'}</span>
+            </StatusPill>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setDemoMode(!demoMode)}
+            aria-pressed={demoMode}
+            title="Alternar modo de demonstração (dados simulados)"
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors',
+              demoMode
+                ? 'border-energy/50 bg-energy/15 text-energy'
+                : 'border-border text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <FlaskConical className="h-3 w-3" />
+            {demoMode ? 'demo on' : 'demo'}
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}

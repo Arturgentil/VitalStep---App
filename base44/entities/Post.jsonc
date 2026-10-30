@@ -1,0 +1,71 @@
+{
+  "name": "Post",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "activity_kind": {
+      "type": "string",
+      "enum": [
+        "walk",
+        "run",
+        "trail",
+        "custom",
+        "achievement",
+        "note"
+      ]
+    },
+    "distance_m": {
+      "type": "number"
+    },
+    "duration_s": {
+      "type": "number"
+    },
+    "steps": {
+      "type": "number"
+    },
+    "energy_mwh": {
+      "type": "number"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "followers",
+        "private"
+      ],
+      "default": "private"
+    },
+    "likes": {
+      "type": "number",
+      "default": 0
+    },
+    "liked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "comments_count": {
+      "type": "number",
+      "default": 0
+    },
+    "challenge_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "author_name",
+    "body"
+  ]
+}

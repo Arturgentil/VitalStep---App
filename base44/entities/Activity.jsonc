@@ -1,0 +1,131 @@
+{
+  "name": "Activity",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "walk",
+        "run",
+        "trail",
+        "custom"
+      ],
+      "default": "walk"
+    },
+    "title": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_s": {
+      "type": "number"
+    },
+    "steps": {
+      "type": "number"
+    },
+    "distance_m": {
+      "type": "number"
+    },
+    "avg_bpm": {
+      "type": "number"
+    },
+    "max_bpm": {
+      "type": "number"
+    },
+    "avg_spo2": {
+      "type": "number"
+    },
+    "energy_mwh": {
+      "type": "number"
+    },
+    "avg_power_mw": {
+      "type": "number"
+    },
+    "calories": {
+      "type": "number"
+    },
+    "avg_pace_s_km": {
+      "type": "number"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "ble",
+        "demo",
+        "manual"
+      ],
+      "default": "ble"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "route": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "t": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "number"
+          },
+          "bpm": {
+            "type": "number"
+          },
+          "steps": {
+            "type": "number"
+          },
+          "power_mw": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "pressure_zones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "zone": {
+            "type": "string"
+          },
+          "pct": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "operator_id",
+    "kind",
+    "started_at"
+  ]
+}

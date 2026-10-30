@@ -1,0 +1,53 @@
+{
+  "name": "Achievement",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "key": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "bronze",
+        "silver",
+        "gold"
+      ],
+      "default": "bronze"
+    },
+    "metric": {
+      "type": "string",
+      "enum": [
+        "steps",
+        "activities",
+        "distance_m",
+        "energy_mwh",
+        "streak_days"
+      ]
+    },
+    "threshold": {
+      "type": "number"
+    },
+    "progress": {
+      "type": "number",
+      "default": 0
+    },
+    "unlocked_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "operator_id",
+    "key",
+    "title"
+  ]
+}

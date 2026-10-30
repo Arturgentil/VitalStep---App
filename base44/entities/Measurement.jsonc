@@ -1,0 +1,64 @@
+{
+  "name": "Measurement",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "metric": {
+      "type": "string",
+      "enum": [
+        "bpm",
+        "spo2",
+        "temp_c",
+        "pressure"
+      ]
+    },
+    "value": {
+      "type": "number"
+    },
+    "unit": {
+      "type": "string"
+    },
+    "quality": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "high"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "ble",
+        "demo",
+        "manual"
+      ],
+      "default": "ble"
+    },
+    "measured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "activity_id": {
+      "type": "string"
+    },
+    "zone": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_id",
+    "metric",
+    "value",
+    "measured_at"
+  ]
+}

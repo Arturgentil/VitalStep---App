@@ -1,0 +1,57 @@
+{
+  "name": "EnergyLog",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "power_mw": {
+      "type": "number",
+      "description": "Instantaneous generated power in milliwatts"
+    },
+    "energy_mwh": {
+      "type": "number",
+      "description": "Accumulated energy for the interval in milliwatt-hours"
+    },
+    "voltage_v": {
+      "type": "number"
+    },
+    "current_ma": {
+      "type": "number"
+    },
+    "battery_pct": {
+      "type": "number"
+    },
+    "stored_mwh": {
+      "type": "number",
+      "description": "Reported store level in milliwatt-hours"
+    },
+    "consumed_mw": {
+      "type": "number",
+      "description": "Measured electronics draw in milliwatts"
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "ble",
+        "demo",
+        "manual"
+      ],
+      "default": "ble"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "activity_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_id",
+    "recorded_at"
+  ]
+}

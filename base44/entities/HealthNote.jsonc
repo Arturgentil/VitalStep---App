@@ -1,0 +1,24 @@
+{
+  "name": "HealthNote",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "note_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metric": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_id",
+    "body",
+    "note_at"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "SafetyEvent",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "fall_suspected",
+        "sos",
+        "test"
+      ]
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "detected",
+        "cancelled",
+        "attempted",
+        "delivered",
+        "failed"
+      ],
+      "default": "detected"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "contact_name": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_id",
+    "kind",
+    "occurred_at"
+  ]
+}

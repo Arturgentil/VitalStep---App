@@ -1,0 +1,38 @@
+{
+  "name": "DeviceEvent",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "scan",
+        "connect",
+        "disconnect",
+        "error",
+        "notify",
+        "command"
+      ]
+    },
+    "detail": {
+      "type": "string"
+    },
+    "rssi": {
+      "type": "number"
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "operator_id",
+    "kind",
+    "at"
+  ]
+}

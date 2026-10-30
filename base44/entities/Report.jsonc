@@ -1,0 +1,23 @@
+{
+  "name": "Report",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "post_id": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_id",
+    "post_id",
+    "reason"
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "name": "ShoeDevice",
+  "type": "object",
+  "properties": {
+    "operator_id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "bluetooth_id": {
+      "type": "string"
+    },
+    "hardware": {
+      "type": "string",
+      "default": "ESP32"
+    },
+    "protocol_version": {
+      "type": "string",
+      "default": "1.0"
+    },
+    "firmware_version": {
+      "type": "string"
+    },
+    "side": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "pair"
+      ],
+      "default": "pair"
+    },
+    "battery_pct": {
+      "type": "number"
+    },
+    "rssi": {
+      "type": "number"
+    },
+    "connected": {
+      "type": "boolean",
+      "default": false
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sensors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "last_value": {
+            "type": "number"
+          },
+          "last_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "operator_id",
+    "name"
+  ]
+}

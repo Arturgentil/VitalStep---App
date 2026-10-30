@@ -1,0 +1,11 @@
+{
+  "name": "StepVolt — Biometric Platform",
+  "short_name": "StepVolt",
+  "description": "Plataforma biométrica integrada a tênis inteligente com ESP32: saúde, biomecânica, atividade e energia gerada pelo movimento.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050810",
+  "theme_color": "#050810",
+  "orientation": "portrait",
+  "lang": "pt-BR"
+}
