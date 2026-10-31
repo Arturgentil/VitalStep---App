@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const url = new URL(rawUrl);
-        if (url.protocol !== 'stepvolt:' ||
+        if (url.protocol !== 'vitalstep:' ||
             url.hostname !== 'auth' ||
             url.pathname !== '/callback') return;
 

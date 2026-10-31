@@ -1,5 +1,5 @@
 /**
- * StepVolt BLE Protocol — v1.0
+ * VitalStep BLE Protocol: v1.0
  * ---------------------------------
  * Frame layout (little-endian payload):
  *
@@ -22,7 +22,7 @@ export const SERVICE_UUID = '7a1c0001-6b4e-4f6d-9a2b-5c3d7e8f9a01';
 export const TELEMETRY_CHAR_UUID = '7a1c0002-6b4e-4f6d-9a2b-5c3d7e8f9a01';
 export const ENERGY_CHAR_UUID = '7a1c0003-6b4e-4f6d-9a2b-5c3d7e8f9a01';
 export const COMMAND_CHAR_UUID = '7a1c0004-6b4e-4f6d-9a2b-5c3d7e8f9a01';
-export const DEVICE_NAME_PREFIX = 'StepVolt';
+export const DEVICE_NAME_PREFIX = 'VitalStep';
 
 export const MESSAGE = {
   TELEMETRY: 0x01,

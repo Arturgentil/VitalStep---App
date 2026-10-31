@@ -9,11 +9,11 @@ import React, {
 } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getOperatorId } from '@/lib/operator';
-import { StepVoltBLE, isBluetoothSupported } from '@/lib/ble/StepVoltBLE';
+import { VitalStepBLE, isBluetoothSupported } from '@/lib/ble/VitalStepBLE';
 import { buildDemoDataset, createDemoStream } from '@/lib/demo/demoData';
 
 const AppContext = createContext(null);
-const DEMO_KEY = 'stepvolt.demo_mode';
+const DEMO_KEY = 'vitalstep.demo_mode';
 
 const VALID_EVENT_KINDS = new Set([
   'scan',
@@ -84,7 +84,7 @@ export function AppProvider({ children }) {
     setOperatorId(id);
 
     const { data, error } = await supabase
-      .from('stepvolt_profiles')
+      .from('vitalstep_profiles')
       .select('*')
       .eq('operator_id', id)
       .maybeSingle();
@@ -123,7 +123,7 @@ export function AppProvider({ children }) {
         setOperatorId(id);
 
         const { data, error } = await supabase
-          .from('stepvolt_profiles')
+          .from('vitalstep_profiles')
           .select('*')
           .eq('operator_id', id)
           .maybeSingle();
@@ -134,7 +134,7 @@ export function AppProvider({ children }) {
         setProfile(data);
         setProfileLoading(false);
       } catch (error) {
-        console.error('[StepVolt] Falha ao carregar perfil:', error);
+        console.error('[VitalStep] Falha ao carregar perfil:', error);
         if (alive) setProfileLoading(false);
       }
     })();
@@ -170,7 +170,7 @@ export function AppProvider({ children }) {
       }
 
       const { data, error } = await supabase
-        .from('stepvolt_profiles')
+        .from('vitalstep_profiles')
         .upsert(
           {
             ...safePatch,
@@ -232,7 +232,7 @@ export function AppProvider({ children }) {
         })
         .then(({ error }) => {
           if (error) {
-            console.error('[StepVolt] Falha ao salvar evento BLE:', error);
+            console.error('[VitalStep] Falha ao salvar evento BLE:', error);
           }
         });
     },
@@ -240,7 +240,7 @@ export function AppProvider({ children }) {
   );
 
   useEffect(() => {
-    const instance = new StepVoltBLE();
+    const instance = new VitalStepBLE();
     bleRef.current = instance;
 
     const sync = () =>

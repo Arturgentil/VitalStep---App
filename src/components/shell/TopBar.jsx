@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BluetoothOff, FlaskConical, Loader2, LogOut, WifiOff } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useApp } from '@/lib/store';
+import BrandLogo from '@/components/brand/BrandLogo';
 import StatusPill from '@/components/sv/StatusPill';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
@@ -33,9 +34,8 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4 sm:px-6">
-        <Link to="/" className="flex items-baseline gap-1 lg:hidden">
-          <span className="font-heading text-base font-bold tracking-tight">Step</span>
-          <span className="font-heading text-base font-bold tracking-tight text-primary">Volt</span>
+        <Link to="/" aria-label="VitalStep, início" className="shrink-0 lg:hidden">
+          <BrandLogo symbolClassName="h-9 w-9" nameClassName="sr-only sm:not-sr-only sm:text-base" />
         </Link>
 
         <div className="ml-auto flex items-center gap-2">

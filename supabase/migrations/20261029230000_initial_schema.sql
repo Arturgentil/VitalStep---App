@@ -1,5 +1,5 @@
 -- =========================================================
--- STEPVolt | PostgreSQL / Supabase
+-- VitalStep | PostgreSQL / Supabase
 -- Migration 001: Initial database schema
 -- =========================================================
 
@@ -10,7 +10,7 @@ create extension if not exists pgcrypto;
 -- auth.users is the identity provider.
 -- ---------------------------------------------------------
 
-create table public.stepvolt_profiles (
+create table public.vitalstep_profiles (
     id uuid primary key default gen_random_uuid(),
     operator_id uuid not null unique references auth.users(id) on delete cascade,
     display_name text,
@@ -388,8 +388,8 @@ begin
 end;
 $$;
 
-create trigger stepvolt_profiles_updated_at
-before update on public.stepvolt_profiles
+create trigger vitalstep_profiles_updated_at
+before update on public.vitalstep_profiles
 for each row execute function public.set_updated_at();
 
 create trigger shoe_devices_updated_at
@@ -404,7 +404,7 @@ for each row execute function public.set_updated_at();
 -- ROW LEVEL SECURITY
 -- ---------------------------------------------------------
 
-alter table public.stepvolt_profiles enable row level security;
+alter table public.vitalstep_profiles enable row level security;
 alter table public.shoe_devices enable row level security;
 alter table public.activities enable row level security;
 alter table public.measurements enable row level security;
@@ -425,7 +425,7 @@ alter table public.reports enable row level security;
 -- Private user-owned data
 
 create policy "profile_owner_all"
-on public.stepvolt_profiles for all
+on public.vitalstep_profiles for all
 using (auth.uid() = operator_id)
 with check (auth.uid() = operator_id);
 

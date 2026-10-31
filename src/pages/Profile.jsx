@@ -123,7 +123,7 @@ export default function Profile() {
 
     try {
       const payload = {
-        app: 'StepVolt',
+        app: 'VitalStep',
         version: 2,
         exported_at: new Date().toISOString(),
         profile: null,
@@ -131,7 +131,7 @@ export default function Profile() {
       };
 
       const { data: profileData, error: profileError } = await supabase
-        .from('stepvolt_profiles')
+        .from('vitalstep_profiles')
         .select('*')
         .eq('operator_id', operatorId)
         .maybeSingle();
@@ -172,7 +172,7 @@ export default function Profile() {
       const a = document.createElement('a');
 
       a.href = url;
-      a.download = `stepvolt-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `vitalstep-backup-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();

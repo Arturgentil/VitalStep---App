@@ -14,7 +14,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { useApp } from '@/lib/store';
-import StepVoltCore from '@/components/visuals/StepVoltCore';
+import BrandLogo from '@/components/brand/BrandLogo';
+import VitalStepCore from '@/components/visuals/VitalStepCore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -82,10 +83,7 @@ export default function Onboarding() {
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-8 sm:px-8">
         <header className="flex items-center justify-between">
-          <div className="flex items-baseline gap-1">
-            <span className="font-heading text-lg font-bold tracking-tight">Step</span>
-            <span className="font-heading text-lg font-bold tracking-tight text-primary">Volt</span>
-          </div>
+          <BrandLogo symbolClassName="h-9 w-9" nameClassName="sr-only sm:not-sr-only" />
           <div className="flex items-center gap-1.5">
             {STEPS.map((s, i) => (
               <span
@@ -112,7 +110,7 @@ export default function Onboarding() {
                   <span className="text-primary">vira energia e inteligência.</span>
                 </h1>
                 <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
-                  StepVolt é uma plataforma biométrica acoplada a um tênis com ESP32. Ela lê seus sinais,
+                  VitalStep é uma plataforma biométrica acoplada a um tênis com ESP32. Ela lê seus sinais,
                   interpreta sua pisada e mede a energia gerada a cada passo — com transparência sobre o que é medido,
                   estimado ou simulado.
                 </p>
@@ -123,7 +121,7 @@ export default function Onboarding() {
                 </div>
               </div>
               <div className="grid place-items-center">
-                <StepVoltCore connected powerMw={7.4} bpm={112} size={240} />
+                <VitalStepCore connected powerMw={7.4} bpm={112} size={240} />
               </div>
             </div>
           )}
@@ -266,9 +264,9 @@ export default function Onboarding() {
             <div className="mx-auto w-full max-w-2xl space-y-4">
               <div>
                 <p className="hud-label">Pareamento</p>
-                <h2 className="mt-1 text-2xl font-semibold">Descubra o seu StepVolt</h2>
+                <h2 className="mt-1 text-2xl font-semibold">Descubra o seu VitalStep</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  O tênis anuncia-se como <span className="font-mono text-foreground">StepVolt-…</span>. A conexão usa
+                  O tênis anuncia-se como <span className="font-mono text-foreground">VitalStep-…</span>. A conexão usa
                   Web Bluetooth e exige um navegador compatível (Chrome ou Edge) em contexto seguro.
                 </p>
               </div>

@@ -1,0 +1,28 @@
+{
+  "generator": "Built-in image_gen",
+  "requestedColors": {
+    "foreground": "#20D8F8",
+    "background": "#06080E"
+  },
+  "previewRendering": "Generated transparent PNG alpha channels displayed using CSS masks in exact #20D8F8 on #06080E. Source PNGs preserved unchanged.",
+  "options": [
+    {
+      "option": 1,
+      "name": "Cadência",
+      "file": "vitalstep-01-cadencia-transparente.png",
+      "prompt": "Use case: precise-object-edit, logo-brand.\nUse the attached image as the edit target. Remove the ENTIRE \"VitalStep\" wordmark and ALL lettering completely. Preserve ONLY the abstract symbol at the far left, consisting of two separate gently bowed diagonal strokes with precise straight terminals. Do not keep or create any letter, monogram, word or number.\nRecompose that exact abstract icon alone at the center of a square 1024x1024 canvas, enlarging it to about 50 percent of the canvas width. Keep the icon's proportions and distinctive geometry intact, with balanced transparent margins.\nThe icon is a single solid flat cyan ink, #20D8F8. Keep actual background transparency, alpha zero outside the icon. No background, no frame, no glow, no halo, no shadow, no gradients, no lighting, no texture. This is a clean standalone brand symbol with no text at all."
+    },
+    {
+      "option": 2,
+      "name": "Elo",
+      "file": "vitalstep-02-elo-transparente.png",
+      "prompt": "Use case: logo-brand.\nDeliver exactly ONE minimalist professional brand SYMBOL ONLY, for a premium biometric smart footwear brand.\nNo typography of any kind: zero letters, zero monograms, zero initials, zero words, zero numbers, zero caption. It must be an abstract standalone icon, not an alphabet glyph. A brand icon rather than a stock illustration.\nFlat single-color solid opaque cyan ink, exact #20D8F8. All surrounding empty space fully transparent with real alpha. No glow, no shadow, no gradients, no lighting, no texture, no white or additional colors, no background rectangle, no app tile.\nSquare 1024x1024 canvas. One carefully centered symbol taking up approximately 50 percent of the canvas width and height, with abundant transparent clear space. Crisp vector-like flat design, a refined deliberate silhouette, precise negative space and sensible stroke or shape thickness, clear even at small size.\nNo ECG, heartbeat, heart, shoe, footprint, lightning bolt, Wi-Fi, radio waves, medical cross, decorative circuitry or chevrons. No mockup, grid, frame, presentation text or watermark.\nDirection: an organic movement link. A single compact solid asymmetrical loop with a beautifully controlled, slightly inclined capsule-like negative space, and one small clean lateral opening. A low broad silhouette, not a circular ring. The outer contour is taut and continuous, the loop feels engineered and fluid, subtly suggesting connection and forward movement. Vary the mass very slightly to create directional tension while retaining calm balance. No infinity shape, no chain link pair, no letterform. One exceptional simple silhouette, quietly premium."
+    },
+    {
+      "option": 3,
+      "name": "Equilíbrio",
+      "file": "vitalstep-03-equilibrio-transparente.png",
+      "prompt": "Use case: logo-brand.\nDeliver exactly ONE minimalist professional brand SYMBOL ONLY, for a premium biometric smart footwear brand.\nNo typography of any kind: zero letters, zero monograms, zero initials, zero words, zero numbers, zero caption. It must be an abstract standalone icon, not an alphabet glyph. A brand icon rather than a stock illustration.\nFlat single-color solid opaque cyan ink, exact #20D8F8. All surrounding empty space fully transparent with real alpha. No glow, no shadow, no gradients, no lighting, no texture, no white or additional colors, no background rectangle, no app tile.\nSquare 1024x1024 canvas. One carefully centered symbol taking up approximately 50 percent of the canvas width and height, with abundant transparent clear space. Crisp vector-like flat design, a refined deliberate silhouette, precise negative space and sensible stroke or shape thickness, clear even at small size.\nNo ECG, heartbeat, heart, shoe, footprint, lightning bolt, Wi-Fi, radio waves, medical cross, decorative circuitry or chevrons. No mockup, grid, frame, presentation text or watermark.\nDirection: bilateral balance and biomechanics. Two gently convex mirrored solid geometric forms separated by one narrow clear vertical negative-space channel. Together they form a compact softly faceted lozenge or rounded diamond silhouette, balanced and stable. Each half is broad and substantial, outer geometry precise with softly rounded transitions, central channel straight and consistent. Symmetry with subtle humane softness. Abstract pressure balance, no feet or anatomy, no heart lobes, no letterforms, no central cross. Only two filled cyan forms and the transparent channel, absolutely no interior detailing."
+    }
+  ]
+}

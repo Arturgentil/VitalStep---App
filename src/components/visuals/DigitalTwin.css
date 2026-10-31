@@ -1,0 +1,90 @@
+.digital-twin-stage {
+  position: relative;
+  overflow: hidden;
+  perspective: 1000px;
+  background: radial-gradient(ellipse at 55% 58%, hsl(var(--primary) / 0.04), transparent 64%);
+}
+
+.digital-twin-pose {
+  transform-origin: 55% 62%;
+  transform-style: preserve-3d;
+}
+
+.digital-twin-pose--demo {
+  animation: digital-twin-orientation 12s ease-in-out infinite;
+}
+
+.digital-twin-axis--x,
+.digital-twin-axis--y,
+.digital-twin-axis--z {
+  opacity: 0.35;
+}
+
+.digital-twin-stage--demo .digital-twin-axis--x,
+.digital-twin-stage--demo .digital-twin-axis--y,
+.digital-twin-stage--demo .digital-twin-axis--z {
+  animation-duration: 12s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.digital-twin-stage--demo .digital-twin-axis--x {
+  animation-name: digital-twin-axis-x;
+}
+
+.digital-twin-stage--demo .digital-twin-axis--y {
+  animation-name: digital-twin-axis-y;
+}
+
+.digital-twin-stage--demo .digital-twin-axis--z {
+  animation-name: digital-twin-axis-z;
+}
+
+@keyframes digital-twin-orientation {
+  0%, 30%, 60%, 90%, 100% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  10% { transform: rotateX(12deg) rotateY(0deg) rotateZ(0deg); }
+  20% { transform: rotateX(-12deg) rotateY(0deg) rotateZ(0deg); }
+  40% { transform: rotateX(0deg) rotateY(0deg) rotateZ(8deg); }
+  50% { transform: rotateX(0deg) rotateY(0deg) rotateZ(-8deg); }
+  70% { transform: rotateX(0deg) rotateY(16deg) rotateZ(0deg); }
+  80% { transform: rotateX(0deg) rotateY(-16deg) rotateZ(0deg); }
+}
+
+@keyframes digital-twin-axis-x {
+  0%, 30%, 100% { opacity: 0.35; }
+  10%, 20% { opacity: 1; }
+}
+
+@keyframes digital-twin-axis-y {
+  0%, 30%, 60%, 100% { opacity: 0.35; }
+  40%, 50% { opacity: 1; }
+}
+
+@keyframes digital-twin-axis-z {
+  0%, 60%, 90%, 100% { opacity: 0.35; }
+  70%, 80% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digital-twin-pose--demo {
+    animation: none;
+    transform: none;
+  }
+
+  .digital-twin-stage--demo .digital-twin-axis--x,
+  .digital-twin-stage--demo .digital-twin-axis--y,
+  .digital-twin-stage--demo .digital-twin-axis--z {
+    animation: none;
+  }
+}
+
+html[data-reduced-motion="true"] .digital-twin-pose--demo {
+  animation: none;
+  transform: none;
+}
+
+html[data-reduced-motion="true"] .digital-twin-stage--demo .digital-twin-axis--x,
+html[data-reduced-motion="true"] .digital-twin-stage--demo .digital-twin-axis--y,
+html[data-reduced-motion="true"] .digital-twin-stage--demo .digital-twin-axis--z {
+  animation: none;
+}

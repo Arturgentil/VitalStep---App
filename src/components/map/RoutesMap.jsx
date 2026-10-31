@@ -3,6 +3,9 @@ import { MapContainer, TileLayer, Polyline, CircleMarker, useMap } from 'react-l
 import 'leaflet/dist/leaflet.css';
 import { ACTIVE_COLOR } from '@/lib/geo';
 
+const cartoApiKey = import.meta.env.VITE_CARTO_API_KEY?.trim() || '';
+const tileUrl = `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoApiKey)}`;
+
 function ViewController({ routes, activeId }) {
   const map = useMap();
 
@@ -37,7 +40,7 @@ export default function RoutesMap({ routes = [], activeId, onSelect, height = 42
         className="h-full w-full"
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url={tileUrl}
           subdomains="abcd"
           maxZoom={20}
           attribution='&copy; OpenStreetMap &copy; CARTO'

@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { NAV_GROUPS } from './navItems';
+import BrandLogo from '@/components/brand/BrandLogo';
 import StatusPill from '@/components/sv/StatusPill';
 import { useApp } from '@/lib/store';
 
@@ -12,11 +13,8 @@ export default function NavRail() {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-border/70 bg-sidebar/80 backdrop-blur-xl lg:flex">
       <div className="px-5 pb-4 pt-6">
-        <div className="flex items-baseline gap-1">
-          <span className="font-heading text-[19px] font-bold tracking-tight text-foreground">Step</span>
-          <span className="font-heading text-[19px] font-bold tracking-tight text-primary">Volt</span>
-        </div>
-        <p className="hud-label mt-1 text-[9px]">biometric platform · v1.0</p>
+        <BrandLogo nameClassName="text-[19px]" />
+        <p className="hud-label mt-1 text-[9px]">plataforma biométrica</p>
       </div>
 
       <nav className="flex-1 overflow-y-auto scrollbar-none px-3 pb-4">

@@ -22,7 +22,7 @@ const SUGGESTIONS = [
 ];
 
 function usageKey() {
-  return `stepvolt.ai.${new Date().toISOString().slice(0, 10)}`;
+  return `vitalstep.ai.${new Date().toISOString().slice(0, 10)}`;
 }
 
 export default function Intelligence() {
@@ -94,7 +94,7 @@ export default function Intelligence() {
     setMessages((prev) => [...prev, { role: 'user', text }]);
     setBusy(true);
     try {
-      const res = await base44.functions.invoke('stepvoltIntelligence', { question: text, context });
+      const res = await base44.functions.invoke('vitalstepIntelligence', { question: text, context });
       const answer = res?.data?.answer;
       if (!answer) throw new Error('O assistente não retornou uma resposta.');
       setMessages((prev) => [...prev, { role: 'assistant', text: answer, used: res.data.used }]);
@@ -111,7 +111,7 @@ export default function Intelligence() {
   if (!profile?.consent_ai) {
     return (
       <div className="space-y-4">
-        <SectionTitle eyebrow="StepVolt Intelligence" title="Inteligência" description="O assistente só funciona com autorização explícita sobre seus dados." />
+        <SectionTitle eyebrow="VitalStep Intelligence" title="Inteligência" description="O assistente só funciona com autorização explícita sobre seus dados." />
         <Panel title="Autorização necessária">
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
@@ -135,7 +135,7 @@ export default function Intelligence() {
   return (
     <div className="space-y-4">
       <SectionTitle
-        eyebrow="StepVolt Intelligence"
+        eyebrow="VitalStep Intelligence"
         title="Inteligência"
         description="Assistente que explica métricas, resume sessões e compara períodos citando os dados que sustentam cada conclusão."
         right={<StatusPill tone="info" dot={false}>{used}/{DAILY_LIMIT} consultas hoje</StatusPill>}

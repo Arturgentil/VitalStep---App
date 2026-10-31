@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">StepVolt</string>
-    <string name="title_activity_main">StepVolt</string>
-    <string name="package_name">com.stepvolt.app</string>
-    <string name="custom_url_scheme">com.stepvolt.app</string>
+    <string name="app_name">VitalStep</string>
+    <string name="title_activity_main">VitalStep</string>
+    <string name="package_name">com.vitalstep.app</string>
+    <string name="custom_url_scheme">com.vitalstep.app</string>
 </resources>

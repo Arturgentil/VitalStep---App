@@ -1,0 +1,8 @@
+{
+  "name": "vitalstep",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-10-30",
+  "vars": {
+    "VITE_BASE44_APP_ID": "6ae250d14047405685fc74f3"
+  }
+}

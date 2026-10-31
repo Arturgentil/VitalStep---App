@@ -15,7 +15,7 @@ function download(filename, content, mime) {
 
 const stamp = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 
-export function exportCSV(rows, filename = `stepvolt-metricas-${stamp()}.csv`) {
+export function exportCSV(rows, filename = `vitalstep-metricas-${stamp()}.csv`) {
   if (!rows.length) return false;
   const headers = Object.keys(rows[0]);
   const escape = (v) => {
@@ -27,7 +27,7 @@ export function exportCSV(rows, filename = `stepvolt-metricas-${stamp()}.csv`) {
   return true;
 }
 
-export function exportJSON(data, filename = `stepvolt-backup-${stamp()}.json`) {
+export function exportJSON(data, filename = `vitalstep-backup-${stamp()}.json`) {
   download(filename, JSON.stringify(data, null, 2), 'application/json');
   return true;
 }
@@ -44,29 +44,29 @@ export function exportGPX(activity) {
     )
     .join('\n');
   const gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="StepVolt" xmlns="http://www.topografix.com/GPX/1/1">
-  <metadata><name>${activity.title || 'Atividade StepVolt'}</name><time>${new Date(
+<gpx version="1.1" creator="VitalStep" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>${activity.title || 'Atividade VitalStep'}</name><time>${new Date(
     activity.started_at,
   ).toISOString()}</time></metadata>
   <trk>
-    <name>${activity.title || 'Atividade StepVolt'}</name>
+    <name>${activity.title || 'Atividade VitalStep'}</name>
     <trkseg>
 ${points}
     </trkseg>
   </trk>
 </gpx>`;
-  download(`stepvolt-rota-${stamp()}.gpx`, gpx, 'application/gpx+xml');
+  download(`vitalstep-rota-${stamp()}.gpx`, gpx, 'application/gpx+xml');
   return true;
 }
 
-export function exportPDF({ title, subtitle, sections }, filename = `stepvolt-relatorio-${stamp()}.pdf`) {
+export function exportPDF({ title, subtitle, sections }, filename = `vitalstep-relatorio-${stamp()}.pdf`) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const margin = 48;
   let y = margin + 12;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
   doc.setTextColor(12, 18, 28);
-  doc.text('StepVolt', margin, y);
+  doc.text('VitalStep', margin, y);
   y += 22;
   doc.setFontSize(13);
   doc.text(title, margin, y);
@@ -108,7 +108,7 @@ export function exportPDF({ title, subtitle, sections }, filename = `stepvolt-re
   doc.setFontSize(8);
   doc.setTextColor(140, 148, 158);
   doc.text(
-    'Documento gerado pelo StepVolt. Valores marcados como estimativa são calculados, não medidos.',
+    'Documento gerado pelo VitalStep. Valores marcados como estimativa são calculados, não medidos.',
     margin,
     812,
   );

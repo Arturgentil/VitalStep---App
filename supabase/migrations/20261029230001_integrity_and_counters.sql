@@ -1,5 +1,5 @@
 -- =========================================================
--- STEPVolt - MIGRATION 002
+-- VitalStep - MIGRATION 002
 -- Ownership integrity and atomic community counters
 -- PostgreSQL 15+ / Supabase
 -- =========================================================
