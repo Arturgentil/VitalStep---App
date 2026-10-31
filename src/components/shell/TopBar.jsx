@@ -1,13 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BluetoothOff, FlaskConical, WifiOff } from 'lucide-react';
+import { BluetoothOff, FlaskConical, Loader2, LogOut, WifiOff } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
 import { useApp } from '@/lib/store';
 import StatusPill from '@/components/sv/StatusPill';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 export default function TopBar() {
   const { ble, demoMode, setDemoMode, online } = useApp();
+  const { logout } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const connected = ble.status === 'connected';
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+
+    try {
+      await logout();
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Não foi possível sair',
+        description: 'Verifique sua conexão e tente novamente.',
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/70 backdrop-blur-xl">
@@ -44,6 +65,20 @@ export default function TopBar() {
             <FlaskConical className="h-3 w-3" />
             {demoMode ? 'demo on' : 'demo'}
           </button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            aria-busy={isLoggingOut}
+            aria-label={isLoggingOut ? 'Saindo...' : 'Sair'}
+            title="Sair"
+            className="shrink-0 gap-1.5 px-2 text-muted-foreground"
+          >
+            {isLoggingOut ? <Loader2 className="animate-spin" /> : <LogOut />}
+            <span className="hidden sm:inline">{isLoggingOut ? 'Saindo...' : 'Sair'}</span>
+          </Button>
         </div>
       </div>
     </header>
