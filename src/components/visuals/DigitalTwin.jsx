@@ -17,11 +17,11 @@ const AXES = [
   { key: 'z', label: 'Direção' },
 ];
 
-function ShoeProfile({ sensors, active }) {
+function ShoeProfile({ sensors, active, simulating }) {
   const byKey = Object.fromEntries(sensors.map((sensor) => [sensor.key, sensor]));
 
   return (
-    <svg viewBox="0 70 640 290" className="block w-full" fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 110 640 240" className="block w-full" fill="none" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <g stroke="hsl(var(--primary))">
         {/* Heel opening, padded tongue and the full upper silhouette. */}
         <path d="M399 195 Q417 177 434 190 Q475 212 522 183 Q540 177 544 195" strokeWidth="1.5" strokeOpacity="0.5" />
@@ -71,10 +71,20 @@ function ShoeProfile({ sensors, active }) {
       {MARKERS.map((marker) => {
         const available = Boolean(byKey[marker.key]?.available);
         return (
-          <g key={marker.key} stroke={available ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'} opacity={available ? 0.9 : 0.3}>
+          <g
+            key={marker.key}
+            transform={`translate(${marker.x} ${marker.y})`}
+            className={cn('digital-twin-marker', simulating && available && 'digital-twin-marker--demo')}
+            stroke={available ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))'}
+            opacity={available ? 0.9 : 0.3}
+          >
             <title>{`${marker.label}: ${available ? 'disponível' : 'indisponível'}`}</title>
-            <circle cx={marker.x} cy={marker.y} r="7" strokeWidth="1.5" />
-            <circle cx={marker.x} cy={marker.y} r="2.5" strokeWidth="1" opacity={active ? 1 : 0.5} />
+            <g className="digital-twin-gyro-rings" strokeWidth="0.9">
+              <circle r="7" strokeDasharray="22 5 5 12" />
+              <ellipse rx="8" ry="3" transform="rotate(-30)" opacity="0.55" />
+              <ellipse rx="3" ry="8" transform="rotate(-30)" opacity="0.55" />
+            </g>
+            <circle className="digital-twin-gyro-core" r="2" strokeWidth="1.2" opacity={active ? 1 : 0.5} />
           </g>
         );
       })}
@@ -85,36 +95,20 @@ function ShoeProfile({ sensors, active }) {
 export default function DigitalTwin({ sensors = [], active = false, demo = false, className = '' }) {
   const simulating = demo && active && sensors.some((sensor) => sensor.key === 'imu' && sensor.available);
   let motionLabel = 'Conecte o tênis para consultar os sensores.';
-  if (simulating) motionLabel = 'Simulação de rotação nos três eixos.';
+  if (simulating) motionLabel = 'Giroscópio simulado nos pontos internos.';
   else if (active) motionLabel = 'Orientação não recebida do dispositivo.';
 
   return (
     <div className={cn('relative w-full min-w-0', className)}>
       <div
-        className={cn('digital-twin-stage rounded-xl', simulating && 'digital-twin-stage--demo')}
+        className="digital-twin-stage rounded-xl"
         role="img"
-        aria-label="Contorno azul de um tênis esportivo com cadarços, sola em camadas e mapa dos sensores."
+        aria-label="Contorno azul de um tênis parado, com sensores e giroscópio representados pelos pontos internos."
       >
         <div className="absolute left-3 top-3 z-10 font-mono text-[8px] uppercase tracking-[0.18em] text-muted-foreground sm:text-[9px]">
-          Giroscópio <span className="ml-1 text-primary">X / Y / Z</span>
+          Sensores internos <span className="ml-1 text-primary">X / Y / Z</span>
         </div>
-        <svg viewBox="0 70 640 290" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
-          <ellipse cx="321" cy="318" rx="244" ry="18" fill="none" stroke="hsl(var(--primary))" strokeOpacity="0.12" />
-          <path d="M46 319 H595 M321 305 V334" stroke="hsl(var(--border))" strokeWidth="1" strokeDasharray="3 7" />
-          <g fill="none" strokeWidth="1" strokeDasharray="5 7">
-            <ellipse className="digital-twin-axis--x" cx="320" cy="262" rx="275" ry="62" stroke="hsl(var(--primary))" transform="rotate(-10 320 262)" />
-            <ellipse className="digital-twin-axis--y" cx="350" cy="228" rx="140" ry="108" stroke="hsl(var(--accent))" transform="rotate(-24 350 228)" />
-            <path className="digital-twin-axis--z" d="M92 222 C57 129 155 68 286 87 M284 80 L293 87 L282 92" stroke="hsl(var(--primary))" />
-          </g>
-          <g fontFamily="var(--font-mono)" fontSize="10">
-            <text x="594" y="235" fill="hsl(var(--primary))">X</text>
-            <text x="444" y="116" fill="hsl(var(--accent))">Y</text>
-            <text x="260" y="84" fill="hsl(var(--primary))">Z</text>
-          </g>
-        </svg>
-        <div className={cn('digital-twin-pose', simulating && 'digital-twin-pose--demo')}>
-          <ShoeProfile sensors={sensors} active={active} />
-        </div>
+        <ShoeProfile sensors={sensors} active={active} simulating={simulating} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border/50 px-1 pb-3">
