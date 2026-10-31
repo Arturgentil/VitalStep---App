@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Send, ShieldCheck, Users } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import useTelemetryData from '@/hooks/useTelemetryData';
 import SectionTitle from '@/components/sv/SectionTitle';
@@ -34,15 +34,45 @@ export default function Community() {
   });
   const [feedback, setFeedback] = useState(null);
 
-  const load = async () => {
-    const page = await base44.entities.Post.filter({}, { sort: '-created_date', limit: 40 });
-    setPosts(page.items || []);
-    setLoading(false);
+  const load = async (isAlive = () => true) => {
+    if (demoMode || !operatorId || !supabase) {
+      if (isAlive()) {
+        setPosts([]);
+        setLoading(false);
+      }
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(40);
+
+    if (error) throw error;
+
+    if (isAlive()) {
+      setPosts(data || []);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    load().catch(() => setLoading(false));
-  }, []);
+    let alive = true;
+
+    load(() => alive).catch((error) => {
+      console.error('Erro ao carregar comunidade:', error);
+      if (alive) {
+        setPosts([]);
+        setLoading(false);
+        setFeedback('Não foi possível carregar as publicações.');
+      }
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [operatorId, demoMode]);
 
   const visible = useMemo(
     () =>
@@ -54,28 +84,39 @@ export default function Community() {
   );
 
   const publish = async () => {
-    if (!body.trim() || !operatorId) return;
+    if (!body.trim() || !operatorId || demoMode || !supabase) return;
+
     const source = activities.find((a) => a.id === activityId);
-    const created = await base44.entities.Post.create({
-      operator_id: operatorId,
-      author_name: profile?.display_name || 'Operador',
-      title: source?.title || 'Publicação',
-      body: body.trim(),
-      activity_kind: source?.kind || 'note',
-      distance_m: source?.distance_m ?? null,
-      duration_s: source?.duration_s ?? null,
-      steps: source?.steps ?? null,
-      energy_mwh: source?.energy_mwh ?? null,
-      visibility,
-      likes: 0,
-      liked_by: [],
-      comments_count: 0,
-    });
-    setPosts((prev) => [created, ...prev]);
-    setBody('');
-    setActivityId('');
-    setFeedback('Publicação criada.');
-    setTimeout(() => setFeedback(null), 2400);
+
+    try {
+      const { data: created, error } = await supabase
+        .from('posts')
+        .insert({
+          operator_id: operatorId,
+          author_name: profile?.display_name || 'Operador',
+          title: source?.title || 'Publicação',
+          body: body.trim(),
+          activity_kind: source?.kind || 'note',
+          distance_m: source?.distance_m ?? null,
+          duration_s: source?.duration_s ?? null,
+          steps: source?.steps ?? null,
+          energy_mwh: source?.energy_mwh ?? null,
+          visibility,
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      setPosts((prev) => [created, ...prev]);
+      setBody('');
+      setActivityId('');
+      setFeedback('Publicação criada.');
+      setTimeout(() => setFeedback(null), 2400);
+    } catch (error) {
+      console.error('Erro ao publicar:', error);
+      setFeedback(error?.message || 'Não foi possível publicar.');
+    }
   };
 
   const block = (author) => {
@@ -87,14 +128,26 @@ export default function Community() {
   };
 
   const report = async (post) => {
-    await base44.entities.Report.create({
-      operator_id: operatorId,
-      post_id: post.id,
-      reason: 'conteúdo inadequado',
-      detail: `Autor: ${post.author_name}`,
-    });
-    setFeedback('Denúncia registrada para moderação.');
-    setTimeout(() => setFeedback(null), 2600);
+    if (!operatorId || !supabase || demoMode) return;
+
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .insert({
+          operator_id: operatorId,
+          post_id: post.id,
+          reason: 'conteúdo inadequado',
+          detail: `Autor: ${post.author_name || 'Desconhecido'}`,
+        });
+
+      if (error) throw error;
+
+      setFeedback('Denúncia registrada para moderação.');
+      setTimeout(() => setFeedback(null), 2600);
+    } catch (error) {
+      console.error('Erro ao denunciar publicação:', error);
+      setFeedback(error?.message || 'Não foi possível registrar a denúncia.');
+    }
   };
 
   return (

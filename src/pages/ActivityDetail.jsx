@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, HeartPulse, MapPin, Route, Timer, Trash2, TrendingDown, TrendingUp, Zap } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import Panel from '@/components/sv/Panel';
 import StatusPill from '@/components/sv/StatusPill';
@@ -24,47 +24,87 @@ export default function ActivityDetail() {
   const [notFound, setNotFound] = useState(false);
   const [zone, setZone] = useState(null);
 
-  useEffect(() => {
+    useEffect(() => {
     let alive = true;
+
     setLoading(true);
+    setNotFound(false);
+    setActivity(null);
+    setPrevious(null);
+
     if (id?.startsWith('demo-')) {
       const list = demoData.activities;
       const found = list.find((a) => a.id === id) || null;
+
       setActivity(found);
-      setPrevious(found ? list.find((a) => a.kind === found.kind && new Date(a.started_at) < new Date(found.started_at)) || null : null);
+      setPrevious(
+        found
+          ? list.find(
+              (a) =>
+                a.kind === found.kind &&
+                new Date(a.started_at) < new Date(found.started_at),
+            ) || null
+          : null,
+      );
       setLoading(false);
       setNotFound(!found);
+
       return () => {
         alive = false;
       };
     }
-    base44.entities.Activity.get(id)
-      .then(async (record) => {
+
+    const loadActivity = async () => {
+      try {
+        if (!supabase || !operatorId) {
+          throw new Error('Conta ou Supabase não disponível.');
+        }
+
+        const { data: record, error: recordError } = await supabase
+          .from('activities')
+          .select('*')
+          .eq('id', id)
+          .eq('operator_id', operatorId)
+          .maybeSingle();
+
+        if (recordError) throw recordError;
+
+        if (!record) {
+          if (alive) setNotFound(true);
+          return;
+        }
+
         if (!alive) return;
         setActivity(record);
-        setLoading(false);
-        if (record?.operator_id && record?.kind) {
-          const page = await base44.entities.Activity.filter(
-            { operator_id: record.operator_id, kind: record.kind },
-            { sort: '-started_at', limit: 30 },
-          );
-          const prev = (page.items || []).find(
-            (a) => a.id !== record.id && new Date(a.started_at) < new Date(record.started_at),
-          );
+
+        if (record.kind && record.started_at) {
+          const { data: prev, error: previousError } = await supabase
+            .from('activities')
+            .select('*')
+            .eq('operator_id', operatorId)
+            .eq('kind', record.kind)
+            .lt('started_at', record.started_at)
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (previousError) throw previousError;
           if (alive) setPrevious(prev || null);
         }
-      })
-      .catch(() => {
-        if (!alive) return;
-        setNotFound(true);
-        setLoading(false);
-      });
+      } catch (error) {
+        console.error('Erro ao carregar atividade:', error);
+        if (alive) setNotFound(true);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+
+    loadActivity();
+
     return () => {
       alive = false;
     };
-  }, [id]);
-
-  useEffect(() => {
+  }, [id, operatorId, demoData.activities]);  useEffect(() => {
     if (!notFound) return undefined;
     const meta = document.createElement('meta');
     meta.name = 'prerender-status-code';
@@ -78,8 +118,28 @@ export default function ActivityDetail() {
       navigate('/atividade');
       return;
     }
-    await base44.entities.Activity.delete(id);
-    navigate('/atividade');
+
+    try {
+      if (!supabase || !operatorId) {
+        throw new Error('Conta ou Supabase não disponível.');
+      }
+
+      const { data, error } = await supabase
+        .from('activities')
+        .delete()
+        .eq('id', id)
+        .eq('operator_id', operatorId)
+        .select('id')
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) throw new Error('Atividade não encontrada ou sem permissão para excluir.');
+
+      navigate('/atividade');
+    } catch (error) {
+      console.error('Erro ao excluir atividade:', error);
+      window.alert(error?.message || 'Não foi possível excluir a atividade.');
+    }
   };
 
   if (loading) {

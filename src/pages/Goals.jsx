@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Flag, Plus, Target, Trash2, Trophy, Users } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import useTelemetryData from '@/hooks/useTelemetryData';
 import SectionTitle from '@/components/sv/SectionTitle';
@@ -19,12 +19,20 @@ import { cn } from '@/lib/utils';
 const METRIC_LABEL = { steps: 'passos', minutes: 'minutos', energy_mwh: 'mWh', distance_m: 'metros' };
 const CHALLENGE_METRICS = ['steps', 'distance_m', 'minutes', 'energy_mwh'];
 
+function localDateString(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function Goals() {
   const { operatorId, profile, patchProfile, demoMode } = useApp();
   const { activities, energyLogs, loading, demo } = useTelemetryData();
   const [goals, setGoals] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [challenges, setChallenges] = useState([]);
+  const [memberships, setMemberships] = useState([]);
   const [draft, setDraft] = useState({ title: '', metric: 'steps', period: 'daily', target: 10000 });
   const [challengeDraft, setChallengeDraft] = useState({ title: '', metric: 'steps', target: 50000, days: 7 });
   const [name, setName] = useState(profile?.display_name || 'Operador');
@@ -43,50 +51,133 @@ export default function Goals() {
 
   const progress = useMemo(() => achievementProgress(stats), [stats]);
 
-  const load = async () => {
-    if (!operatorId) return;
-    const [g, a, c] = await Promise.all([
-      base44.entities.Goal.filter({ operator_id: operatorId }, { sort: '-created_date', limit: 30 }),
-      base44.entities.Achievement.filter({ operator_id: operatorId }),
-      base44.entities.Challenge.filter({}, { sort: '-created_date', limit: 30 }),
-    ]);
-    setGoals(g.items || []);
-    setAchievements(a || []);
-    setChallenges((c.items || []).filter((ch) => ch.visibility !== 'private' || ch.operator_id === operatorId));
+  const load = async (isAlive = () => true) => {
+    if (!operatorId || demoMode || !supabase) {
+      setGoals([]);
+      setAchievements([]);
+      setChallenges([]);
+      setMemberships([]);
+      return;
+    }
+
+    const [goalsResult, achievementsResult, challengesResult, membershipsResult] =
+      await Promise.all([
+        supabase
+          .from('goals')
+          .select('*')
+          .eq('operator_id', operatorId)
+          .order('created_at', { ascending: false })
+          .limit(30),
+        supabase
+          .from('achievements')
+          .select('*')
+          .eq('operator_id', operatorId),
+        supabase
+          .from('challenges')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(30),
+        supabase
+          .from('challenge_participants')
+          .select('challenge_id, operator_id')
+          .eq('operator_id', operatorId),
+      ]);
+
+    for (const result of [
+      goalsResult,
+      achievementsResult,
+      challengesResult,
+      membershipsResult,
+    ]) {
+      if (result.error) throw result.error;
+    }
+
+    if (!isAlive()) return;
+
+    setGoals(goalsResult.data || []);
+    setAchievements(achievementsResult.data || []);
+    setChallenges(challengesResult.data || []);
+    setMemberships(membershipsResult.data || []);
   };
 
   useEffect(() => {
-    load().catch(() => {});
-  }, [operatorId]);
+    let alive = true;
+
+    load(() => alive).catch((error) => {
+      console.error('Erro ao carregar metas e desafios:', error);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [operatorId, demoMode]);
 
   // Persist newly reached achievements once, and refresh progress of the others.
   useEffect(() => {
-    if (!operatorId || loading || demoMode) return;
-    const reached = progress.filter((p) => p.progress >= p.threshold);
+    if (!operatorId || loading || demoMode || !supabase) return;
+
     const existing = new Map(achievements.map((a) => [a.key, a]));
-    const toCreate = reached.filter((p) => !existing.has(p.key));
-    const toUpdate = progress.filter((p) => existing.has(p.key) && existing.get(p.key).progress !== p.progress);
-    if (toCreate.length) {
-      base44.entities.Achievement.bulkCreate(
-        toCreate.map((p) => ({
-          operator_id: operatorId,
-          key: p.key,
-          title: p.title,
-          description: p.description,
-          tier: p.tier,
-          metric: p.metric,
-          threshold: p.threshold,
-          progress: p.progress,
-          unlocked_at: new Date().toISOString(),
-        })),
-      ).then(() => load()).catch(() => {});
-    }
-    if (toUpdate.length) {
-      base44.entities.Achievement.bulkUpdate(
-        toUpdate.map((p) => ({ id: existing.get(p.key).id, progress: p.progress })),
-      ).catch(() => {});
-    }
-  }, [progress, achievements, operatorId, loading]);
+    const now = new Date().toISOString();
+
+    const changed = progress.filter((item) => {
+      const previous = existing.get(item.key);
+      const reached = item.progress >= item.threshold;
+
+      return (
+        (!previous && reached) ||
+        (previous && Number(previous.progress) !== Number(item.progress)) ||
+        (previous && reached && !previous.unlocked_at)
+      );
+    });
+
+    if (!changed.length) return;
+
+    let alive = true;
+
+    const persistAchievements = async () => {
+      try {
+        const rows = changed.map((item) => {
+          const previous = existing.get(item.key);
+
+          return {
+            operator_id: operatorId,
+            key: item.key,
+            title: item.title,
+            description: item.description,
+            tier: item.tier,
+            metric: item.metric,
+            threshold: item.threshold,
+            progress: item.progress,
+            unlocked_at:
+              previous?.unlocked_at ||
+              (item.progress >= item.threshold ? now : null),
+          };
+        });
+
+        const { data, error } = await supabase
+          .from('achievements')
+          .upsert(rows, { onConflict: 'operator_id,key' })
+          .select('*');
+
+        if (error) throw error;
+        if (alive && data) {
+          setAchievements((previous) => {
+            const merged = new Map(previous.map((item) => [item.key, item]));
+            data.forEach((item) => merged.set(item.key, item));
+            return Array.from(merged.values());
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao salvar conquistas:', error);
+      }
+    };
+
+    persistAchievements();
+
+    return () => {
+      alive = false;
+    };
+  }, [progress, achievements, operatorId, loading, demoMode]);
 
   const todaySteps = sum(activities.filter((a) => isToday(a.started_at)).map((a) => a.steps || 0));
   const todayEnergy = sum(energyLogs.filter((e) => isToday(e.recorded_at)).map((e) => e.energy_mwh || 0));
@@ -95,52 +186,121 @@ export default function Goals() {
   const unlockedCount = grid.filter((a) => a.unlocked_at).length;
 
   const addGoal = async () => {
-    if (!draft.title.trim() || !operatorId) return;
+    if (!draft.title.trim() || !operatorId || demoMode || !supabase) return;
+
     setBusy(true);
     try {
-      const created = await base44.entities.Goal.create({
-        operator_id: operatorId,
-        ...draft,
-        unit: METRIC_LABEL[draft.metric],
-        active: true,
-      });
-      setGoals((prev) => [created, ...prev]);
+      const { data: created, error } = await supabase
+        .from('goals')
+        .insert({
+          operator_id: operatorId,
+          title: draft.title.trim(),
+          metric: draft.metric,
+          period: draft.period,
+          target: Number(draft.target),
+          unit: METRIC_LABEL[draft.metric],
+          active: true,
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      setGoals((previous) => [created, ...previous]);
       setDraft({ title: '', metric: 'steps', period: 'daily', target: 10000 });
+    } catch (error) {
+      console.error('Erro ao criar meta:', error);
     } finally {
       setBusy(false);
     }
   };
 
   const createChallenge = async () => {
-    if (!challengeDraft.title.trim() || !operatorId) return;
+    if (
+      !challengeDraft.title.trim() ||
+      !operatorId ||
+      demoMode ||
+      !supabase ||
+      Number(challengeDraft.target) <= 0 ||
+      Number(challengeDraft.days) <= 0
+    ) return;
+
     setBusy(true);
     try {
       const starts = new Date();
       const ends = new Date();
-      ends.setDate(ends.getDate() + Number(challengeDraft.days || 7));
-      const created = await base44.entities.Challenge.create({
-        operator_id: operatorId,
-        title: challengeDraft.title.trim(),
-        metric: challengeDraft.metric,
-        target: Number(challengeDraft.target),
-        unit: METRIC_LABEL[challengeDraft.metric],
-        starts_on: starts.toISOString().slice(0, 10),
-        ends_on: ends.toISOString().slice(0, 10),
-        visibility: 'public',
-        created_by_name: name || profile?.display_name || 'Operador',
-        participants: [operatorId],
-      });
-      setChallenges((prev) => [created, ...prev]);
+      ends.setDate(ends.getDate() + Number(challengeDraft.days));
+
+      const { data: created, error } = await supabase
+        .from('challenges')
+        .insert({
+          operator_id: operatorId,
+          title: challengeDraft.title.trim(),
+          metric: challengeDraft.metric,
+          target: Number(challengeDraft.target),
+          unit: METRIC_LABEL[challengeDraft.metric],
+          starts_on: localDateString(starts),
+          ends_on: localDateString(ends),
+          visibility: 'public',
+          created_by_name: name || profile?.display_name || 'Operador',
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      setChallenges((previous) => [created, ...previous]);
+
+      const { error: membershipError } = await supabase
+        .from('challenge_participants')
+        .insert({
+          challenge_id: created.id,
+          operator_id: operatorId,
+        });
+
+      if (membershipError) {
+        console.error('Desafio criado, mas não foi possível registrar a inscrição:', membershipError);
+      } else {
+        setMemberships((previous) => [
+          ...previous,
+          { challenge_id: created.id, operator_id: operatorId },
+        ]);
+      }
+
       setChallengeDraft({ title: '', metric: 'steps', target: 50000, days: 7 });
+    } catch (error) {
+      console.error('Erro ao criar desafio:', error);
     } finally {
       setBusy(false);
     }
   };
 
   const joinChallenge = async (challenge) => {
-    const participants = Array.from(new Set([...(challenge.participants || []), operatorId]));
-    await base44.entities.Challenge.update(challenge.id, { participants });
-    setChallenges((prev) => prev.map((c) => (c.id === challenge.id ? { ...c, participants } : c)));
+    if (!operatorId || demoMode || !supabase) return;
+
+    try {
+      const { error } = await supabase
+        .from('challenge_participants')
+        .insert({
+          challenge_id: challenge.id,
+          operator_id: operatorId,
+        });
+
+      if (error && error.code !== '23505') throw error;
+
+      setMemberships((previous) => {
+        if (previous.some((item) => item.challenge_id === challenge.id)) {
+          return previous;
+        }
+
+        return [
+          ...previous,
+          { challenge_id: challenge.id, operator_id: operatorId },
+        ];
+      });
+    } catch (error) {
+      console.error('Erro ao participar do desafio:', error);
+    }
   };
 
   return (
@@ -227,7 +387,25 @@ export default function Goals() {
                 <span className="font-mono text-[9px] text-muted-foreground">
                   {g.target} {g.unit} · {g.period}
                 </span>
-                <button type="button" onClick={async () => { await base44.entities.Goal.delete(g.id); setGoals((p) => p.filter((x) => x.id !== g.id)); }} className="text-muted-foreground hover:text-destructive">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!supabase || demoMode) return;
+                    try {
+                      const { error } = await supabase
+                        .from('goals')
+                        .delete()
+                        .eq('id', g.id)
+                        .eq('operator_id', operatorId);
+
+                      if (error) throw error;
+                      setGoals((previous) => previous.filter((item) => item.id !== g.id));
+                    } catch (error) {
+                      console.error('Erro ao excluir meta:', error);
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
                   <Trash2 className="h-3 w-3" />
                 </button>
               </div>
@@ -258,7 +436,9 @@ export default function Goals() {
           <div className="space-y-1.5">
             {challenges.length === 0 && <p className="text-[11px] text-muted-foreground">Nenhum desafio ativo. Crie o primeiro ou aguarde a comunidade.</p>}
             {challenges.map((c) => {
-              const joined = (c.participants || []).includes(operatorId);
+              const joined = memberships.some(
+                (membership) => membership.challenge_id === c.id,
+              );
               return (
                 <div key={c.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 px-2.5 py-2">
                   <div className="min-w-0 flex-1">
@@ -267,7 +447,6 @@ export default function Goals() {
                       {c.target} {c.unit} · {c.starts_on} → {c.ends_on} · {c.created_by_name}
                     </p>
                   </div>
-                  <span className="font-mono text-[9px] text-muted-foreground">{(c.participants || []).length} participantes</span>
                   <Button
                     size="sm"
                     variant={joined ? 'secondary' : 'outline'}

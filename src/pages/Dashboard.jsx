@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import BioPulse from '@/components/visuals/BioPulse';
 import { BatteryMedium, Droplets, Footprints, HeartPulse, Maximize2, Thermometer, Zap } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import useTelemetryData from '@/hooks/useTelemetryData';
 import { MetricGridSkeleton, PanelSkeleton } from '@/components/sv/LoadingSkeleton';
@@ -36,15 +36,36 @@ export default function Dashboard() {
   const [expanded, setExpanded] = useState(null);
 
   useEffect(() => {
-    if (!operatorId) return undefined;
     let alive = true;
-    base44.entities.Achievement.filter({ operator_id: operatorId })
-      .then((rows) => alive && setAchievements(rows))
-      .catch(() => {});
+
+    if (!operatorId || demoMode || !supabase) {
+      setAchievements([]);
+      return () => {
+        alive = false;
+      };
+    }
+
+    const loadAchievements = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('achievements')
+          .select('*')
+          .eq('operator_id', operatorId);
+
+        if (error) throw error;
+        if (alive) setAchievements(data || []);
+      } catch (error) {
+        console.error('Erro ao carregar conquistas:', error);
+        if (alive) setAchievements([]);
+      }
+    };
+
+    loadAchievements();
+
     return () => {
       alive = false;
     };
-  }, [operatorId, loading]);
+  }, [operatorId, demoMode]);
 
   const todayActivities = activities.filter((a) => isToday(a.started_at));
   const latest = (metric) => measurements.find((m) => m.metric === metric);

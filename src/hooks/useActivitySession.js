@@ -30,9 +30,11 @@ export default function useActivitySession() {
   const [state, setState] = useState(INITIAL);
   const timer = useRef(null);
   const geoWatch = useRef(null);
-  const acc = useRef({ startSteps: 0, energy: 0, bpm: [], samples: [], route: [], zones: null, lastTick: 0 });
+  const acc = useRef({ lastDeviceSteps: null, sessionSteps: 0, energy: 0, bpm: [], samples: [], route: [], zones: null, lastTick: 0 });
   const geoOn = useRef(false);
   const stateRef = useRef(state);
+  const elapsedBeforePause = useRef(0);
+  const segmentStartedAt = useRef(null);
 
   useEffect(() => {
     liveRef.current = live;
@@ -72,14 +74,29 @@ export default function useActivitySession() {
     if (p?.zones) acc.current.zones = p.zones;
 
     let steps = null;
-    if (t?.steps != null) {
-      const delta = t.steps - acc.current.startSteps;
-      steps = delta >= 0 ? delta : 0;
+    if (t?.steps != null && Number.isFinite(Number(t.steps))) {
+      const rawSteps = Math.max(0, Math.floor(Number(t.steps)));
+      const previousSteps = acc.current.lastDeviceSteps;
+
+      if (previousSteps === null) {
+        // Primeira leitura: estabelece a referência sem contar passos anteriores.
+      } else if (rawSteps >= previousSteps) {
+        acc.current.sessionSteps += rawSteps - previousSteps;
+      } else {
+        // O contador do dispositivo reiniciou.
+        acc.current.sessionSteps += rawSteps;
+      }
+
+      acc.current.lastDeviceSteps = rawSteps;
+      steps = acc.current.sessionSteps;
+
       if (t.bpm) acc.current.bpm.push(t.bpm);
     }
 
     setState((s) => {
-      const elapsed = s.startedAt ? Math.round((now - s.startedAt) / 1000) : 0;
+      const elapsed = segmentStartedAt.current
+        ? Math.round(elapsedBeforePause.current + (now - segmentStartedAt.current) / 1000)
+        : Math.round(elapsedBeforePause.current);
       const nextSteps = steps ?? s.steps;
       if (elapsed > 0 && elapsed % 5 === 0) {
         acc.current.samples.push({
@@ -108,8 +125,12 @@ export default function useActivitySession() {
 
   const start = useCallback(
     (kind = 'walk') => {
+      elapsedBeforePause.current = 0;
+      segmentStartedAt.current = Date.now();
+      const initialSteps = Number(liveRef.current?.telemetry?.steps);
       acc.current = {
-        startSteps: liveRef.current?.telemetry?.steps ?? 0,
+        lastDeviceSteps: Number.isFinite(initialSteps) ? Math.max(0, Math.floor(initialSteps)) : null,
+        sessionSteps: 0,
         energy: 0,
         bpm: [],
         samples: [],
@@ -157,10 +178,19 @@ export default function useActivitySession() {
 
   const pause = useCallback(() => {
     clearInterval(timer.current);
-    setState((s) => ({ ...s, status: 'paused' }));
+    if (segmentStartedAt.current !== null) {
+      elapsedBeforePause.current += (Date.now() - segmentStartedAt.current) / 1000;
+      segmentStartedAt.current = null;
+    }
+    setState((s) => ({
+      ...s,
+      status: 'paused',
+      elapsed: Math.round(elapsedBeforePause.current),
+    }));
   }, []);
 
   const resume = useCallback(() => {
+    segmentStartedAt.current = Date.now();
     acc.current.lastTick = Date.now();
     setState((s) => ({ ...s, status: 'running' }));
     clearInterval(timer.current);
@@ -171,22 +201,27 @@ export default function useActivitySession() {
     clearInterval(timer.current);
     stopGeo();
     const s = stateRef.current;
+    const endedAt = Date.now();
+    const elapsedSeconds = Math.max(0, Math.round(
+      elapsedBeforePause.current +
+      (segmentStartedAt.current !== null ? (endedAt - segmentStartedAt.current) / 1000 : 0)
+    ));
     const bpmValues = acc.current.bpm;
     const summary = {
       kind: s.kind,
       title:
         s.kind === 'run' ? 'Corrida' : s.kind === 'trail' ? 'Trilha' : s.kind === 'custom' ? 'Sessão personalizada' : 'Caminhada',
       started_at: new Date(s.startedAt || Date.now()).toISOString(),
-      ended_at: new Date().toISOString(),
-      duration_s: s.elapsed,
+      ended_at: new Date(endedAt).toISOString(),
+      duration_s: elapsedSeconds,
       steps: s.steps,
       distance_m: Math.round(s.distance),
       avg_bpm: bpmValues.length ? Math.round(bpmValues.reduce((a, b) => a + b, 0) / bpmValues.length) : null,
       max_bpm: bpmValues.length ? Math.max(...bpmValues) : null,
       avg_spo2: null,
       energy_mwh: Math.round(acc.current.energy * 10) / 10,
-      avg_power_mw: s.elapsed ? Math.round((acc.current.energy / s.elapsed) * 60000 * 10) / 10 : null,
-      avg_pace_s_km: s.distance > 5 ? Math.round(s.elapsed / (s.distance / 1000)) : null,
+      avg_power_mw: elapsedSeconds ? Math.round((acc.current.energy / elapsedSeconds) * 3600 * 10) / 10 : null,
+      avg_pace_s_km: s.distance > 5 ? Math.round(elapsedSeconds / (s.distance / 1000)) : null,
       source: demoMode ? 'demo' : 'ble',
       samples: acc.current.samples,
       route: acc.current.route.map(({ lat, lng, t }) => ({ lat, lng, t })),
@@ -194,6 +229,8 @@ export default function useActivitySession() {
         ? Object.entries(acc.current.zones).map(([zone, pct]) => ({ zone, pct }))
         : [],
     };
+    elapsedBeforePause.current = 0;
+    segmentStartedAt.current = null;
     setState({ ...INITIAL });
     return summary;
   }, [demoMode, stopGeo]);

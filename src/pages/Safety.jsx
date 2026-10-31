@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Check, MapPin, Phone, PhoneCall, Plus, ShieldAlert, ShieldCheck, Trash2, X } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import SectionTitle from '@/components/sv/SectionTitle';
 import Panel from '@/components/sv/Panel';
@@ -33,18 +33,49 @@ export default function Safety() {
   const [message, setMessage] = useState(null);
   const timer = useRef(null);
 
-  const load = async () => {
-    if (!operatorId) return;
-    const [c, e] = await Promise.all([
-      base44.entities.EmergencyContact.filter({ operator_id: operatorId }),
-      base44.entities.SafetyEvent.filter({ operator_id: operatorId }, { sort: '-occurred_at', limit: 20 }),
+  const load = async (isAlive = () => true) => {
+    if (!operatorId || !supabase) {
+      if (isAlive()) {
+        setContacts([]);
+        setEvents([]);
+      }
+      return;
+    }
+
+    const [contactsResult, eventsResult] = await Promise.all([
+      supabase
+        .from('emergency_contacts')
+        .select('*')
+        .eq('operator_id', operatorId)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('safety_events')
+        .select('*')
+        .eq('operator_id', operatorId)
+        .order('occurred_at', { ascending: false })
+        .limit(20),
     ]);
-    setContacts(c || []);
-    setEvents(e.items || []);
+
+    if (contactsResult.error) throw contactsResult.error;
+    if (eventsResult.error) throw eventsResult.error;
+
+    if (isAlive()) {
+      setContacts(contactsResult.data || []);
+      setEvents(eventsResult.data || []);
+    }
   };
 
   useEffect(() => {
-    load().catch(() => {});
+    let alive = true;
+
+    load(() => alive).catch((error) => {
+      console.error('Erro ao carregar dados de segurança:', error);
+      if (alive) setMessage('Não foi possível carregar os dados de segurança.');
+    });
+
+    return () => {
+      alive = false;
+    };
   }, [operatorId]);
 
   useEffect(() => () => clearInterval(timer.current), []);
@@ -69,64 +100,118 @@ export default function Safety() {
   const cancel = async () => {
     clearInterval(timer.current);
     setCountdown(null);
-    if (operatorId) {
-      const created = await base44.entities.SafetyEvent.create({
-        operator_id: operatorId,
-        kind: kind === 'test' ? 'test' : kind === 'fall' ? 'fall_suspected' : 'sos',
-        state: 'cancelled',
-        occurred_at: new Date().toISOString(),
-        note: 'Cancelado pelo operador durante a contagem regressiva.',
-      });
-      setEvents((prev) => [created, ...prev]);
+
+    if (!operatorId || !supabase) {
+      setMessage('Não foi possível registrar o cancelamento: banco indisponível.');
+      return;
     }
-    setMessage('Alerta cancelado antes do envio.');
-    setTimeout(() => setMessage(null), 2600);
+
+    try {
+      const { data: created, error } = await supabase
+        .from('safety_events')
+        .insert({
+          operator_id: operatorId,
+          kind: kind === 'test' ? 'test' : kind === 'fall' ? 'fall_suspected' : 'sos',
+          state: 'cancelled',
+          occurred_at: new Date().toISOString(),
+          note: 'Cancelado pelo operador durante a contagem regressiva.',
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      setEvents((prev) => [created, ...prev].slice(0, 20));
+      setMessage('Alerta cancelado e registrado.');
+    } catch (error) {
+      console.error('Erro ao registrar cancelamento:', error);
+      setMessage(error?.message || 'Não foi possível registrar o cancelamento.');
+    }
   };
 
   const confirmSend = async (eventKind) => {
-    if (!operatorId) return;
-    let coords = null;
-    if (navigator.geolocation) {
-      coords = await new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-          () => resolve(null),
-          { timeout: 8000 },
-        );
-      });
+    if (!operatorId || !supabase) {
+      setMessage('Não foi possível registrar o evento: banco indisponível.');
+      return;
     }
-    const primary = contacts.find((c) => c.primary) || contacts[0];
-    const created = await base44.entities.SafetyEvent.create({
-      operator_id: operatorId,
-      kind: eventKind === 'test' ? 'test' : eventKind === 'fall' ? 'fall_suspected' : 'sos',
-      state: 'attempted',
-      occurred_at: new Date().toISOString(),
-      latitude: coords?.latitude ?? null,
-      longitude: coords?.longitude ?? null,
-      contact_name: primary?.name || null,
-      note:
+
+    try {
+      let coords = null;
+
+      if (navigator.geolocation) {
+        coords = await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+            }),
+            () => resolve(null),
+            { timeout: 8000 },
+          );
+        });
+      }
+
+      const primaryContact = contacts.find((c) => c.is_primary) || contacts[0];
+
+      const { data: created, error } = await supabase
+        .from('safety_events')
+        .insert({
+          operator_id: operatorId,
+          kind: eventKind === 'test' ? 'test' : eventKind === 'fall' ? 'fall_suspected' : 'sos',
+          state: 'attempted',
+          occurred_at: new Date().toISOString(),
+          latitude: coords?.latitude ?? null,
+          longitude: coords?.longitude ?? null,
+          contact_name: primaryContact?.name || null,
+          note:
+            eventKind === 'test'
+              ? 'Teste de funcionamento — nenhuma mensagem real foi enviada.'
+              : 'Nenhum canal automatizado de SMS está configurado nesta versão; o evento foi registrado para acionamento manual.',
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      setEvents((prev) => [created, ...prev].slice(0, 20));
+      setLocation(coords);
+      setMessage(
         eventKind === 'test'
-          ? 'Teste de funcionamento — nenhuma mensagem real foi enviada.'
-          : 'Nenhum canal automatizado de SMS está configurado nesta versão; o evento foi registrado para acionamento manual.',
-    });
-    setEvents((prev) => [created, ...prev]);
-    setLocation(coords);
-    setMessage(
-      eventKind === 'test'
-        ? 'Teste concluído: contagem, registro e localização funcionaram. Nenhum alerta real foi enviado.'
-        : 'Evento registrado. Nenhuma mensagem automática foi enviada — use o contato abaixo para ligar agora.',
-    );
+          ? 'Teste concluído: contagem, registro e localização funcionaram. Nenhum alerta real foi enviado.'
+          : 'Evento registrado. Nenhuma mensagem automática foi enviada — use o contato abaixo para ligar agora.',
+      );
+    } catch (error) {
+      console.error('Erro ao registrar evento de segurança:', error);
+      setMessage(error?.message || 'Não foi possível registrar o evento.');
+    }
   };
 
   const addContact = async () => {
-    if (!draft.name.trim() || !draft.phone.trim() || !operatorId) return;
-    const created = await base44.entities.EmergencyContact.create({
-      operator_id: operatorId,
-      ...draft,
-      primary: contacts.length === 0,
-    });
-    setContacts((prev) => [...prev, created]);
-    setDraft({ name: '', phone: '', relation: '', notify_on_fall: true });
+    if (!draft.name.trim() || !draft.phone.trim() || !operatorId || !supabase) return;
+
+    try {
+      const { data: created, error } = await supabase
+        .from('emergency_contacts')
+        .insert({
+          operator_id: operatorId,
+          name: draft.name.trim(),
+          phone: draft.phone.trim(),
+          relation: draft.relation.trim() || null,
+          notify_on_fall: draft.notify_on_fall,
+          is_primary: contacts.length === 0,
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      setContacts((prev) => [...prev, created]);
+      setDraft({ name: '', phone: '', relation: '', notify_on_fall: true });
+      setMessage('Contato de emergência cadastrado.');
+    } catch (error) {
+      console.error('Erro ao cadastrar contato:', error);
+      setMessage(error?.message || 'Não foi possível cadastrar o contato.');
+    }
   };
 
   const shareLocation = () => {
@@ -144,7 +229,7 @@ export default function Safety() {
     );
   };
 
-  const primary = contacts.find((c) => c.primary) || contacts[0];
+  const primary = contacts.find((c) => c.is_primary) || contacts[0];
 
   return (
     <div className="space-y-4">
@@ -279,9 +364,9 @@ export default function Safety() {
             {contacts.length === 0 && <p className="text-[11px] text-muted-foreground">Nenhum contato cadastrado. Sem contato não há como acionar ajuda manualmente.</p>}
             {contacts.map((c) => (
               <div key={c.id} className="flex items-center gap-2 rounded-md border border-border/60 px-2.5 py-2">
-                <ShieldCheck className={cn('h-3.5 w-3.5', c.primary ? 'text-success' : 'text-muted-foreground')} />
+                <ShieldCheck className={cn('h-3.5 w-3.5', c.is_primary ? 'text-success' : 'text-muted-foreground')} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11.5px] text-foreground">{c.name} {c.primary && <span className="font-mono text-[8px] uppercase text-success">principal</span>}</p>
+                  <p className="truncate text-[11.5px] text-foreground">{c.name} {c.is_primary && <span className="font-mono text-[8px] uppercase text-success">principal</span>}</p>
                   <p className="font-mono text-[9px] text-muted-foreground">{c.phone} · {c.relation || 'contato'}</p>
                 </div>
                 <a href={`tel:${c.phone}`} className="rounded p-1 text-primary hover:text-foreground" aria-label={`Ligar para ${c.name}`}>
@@ -289,7 +374,23 @@ export default function Safety() {
                 </a>
                 <button
                   type="button"
-                  onClick={async () => { await base44.entities.EmergencyContact.delete(c.id); setContacts((p) => p.filter((x) => x.id !== c.id)); }}
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from('emergency_contacts')
+                        .delete()
+                        .eq('id', c.id)
+                        .eq('operator_id', operatorId);
+
+                      if (error) throw error;
+
+                      setContacts((prev) => prev.filter((item) => item.id !== c.id));
+                      setMessage('Contato removido.');
+                    } catch (error) {
+                      console.error('Erro ao remover contato:', error);
+                      setMessage(error?.message || 'Não foi possível remover o contato.');
+                    }
+                  }}
                   className="rounded p-1 text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />

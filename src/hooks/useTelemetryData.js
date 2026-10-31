@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 
 /**
@@ -8,6 +8,7 @@ import { useApp } from '@/lib/store';
  */
 export default function useTelemetryData() {
   const { operatorId, demoMode, demoData } = useApp();
+
   const [state, setState] = useState({
     loading: true,
     error: null,
@@ -18,6 +19,8 @@ export default function useTelemetryData() {
   });
 
   useEffect(() => {
+    let alive = true;
+
     if (demoMode) {
       setState({
         loading: false,
@@ -27,30 +30,96 @@ export default function useTelemetryData() {
         measurements: demoData.measurements,
         energyLogs: demoData.energyLogs,
       });
-      return undefined;
+
+      return () => {
+        alive = false;
+      };
     }
-    if (!operatorId) return undefined;
-    let alive = true;
-    setState((s) => ({ ...s, loading: true, demo: false }));
-    Promise.all([
-      base44.entities.Activity.filter({ operator_id: operatorId }, { sort: '-started_at', limit: 200 }),
-      base44.entities.Measurement.filter({ operator_id: operatorId }, { sort: '-measured_at', limit: 600 }),
-      base44.entities.EnergyLog.filter({ operator_id: operatorId }, { sort: '-recorded_at', limit: 600 }),
-    ])
-      .then(([activities, measurements, energyLogs]) => {
+
+    if (!operatorId || !supabase) {
+      setState({
+        loading: false,
+        error: null,
+        demo: false,
+        activities: [],
+        measurements: [],
+        energyLogs: [],
+      });
+
+      return () => {
+        alive = false;
+      };
+    }
+
+    setState((previous) => ({
+      ...previous,
+      loading: true,
+      error: null,
+      demo: false,
+    }));
+
+    async function loadTelemetry() {
+      try {
+        const [activitiesResult, measurementsResult, energyResult] =
+          await Promise.all([
+            supabase
+              .from('activities')
+              .select('*')
+              .eq('operator_id', operatorId)
+              .order('started_at', { ascending: false })
+              .limit(200),
+
+            supabase
+              .from('measurements')
+              .select('*')
+              .eq('operator_id', operatorId)
+              .order('measured_at', { ascending: false })
+              .limit(600),
+
+            supabase
+              .from('energy_logs')
+              .select('*')
+              .eq('operator_id', operatorId)
+              .order('recorded_at', { ascending: false })
+              .limit(600),
+          ]);
+
+        const results = [
+          activitiesResult,
+          measurementsResult,
+          energyResult,
+        ];
+
+        const failedResult = results.find((result) => result.error);
+
+        if (failedResult) {
+          throw failedResult.error;
+        }
+
         if (!alive) return;
+
         setState({
           loading: false,
           error: null,
           demo: false,
-          activities: activities.items || [],
-          measurements: measurements.items || [],
-          energyLogs: energyLogs.items || [],
+          activities: activitiesResult.data ?? [],
+          measurements: measurementsResult.data ?? [],
+          energyLogs: energyResult.data ?? [],
         });
-      })
-      .catch((error) => {
-        if (alive) setState((s) => ({ ...s, loading: false, error }));
-      });
+      } catch (error) {
+        if (!alive) return;
+
+        setState((previous) => ({
+          ...previous,
+          loading: false,
+          error,
+          demo: false,
+        }));
+      }
+    }
+
+    loadTelemetry();
+
     return () => {
       alive = false;
     };

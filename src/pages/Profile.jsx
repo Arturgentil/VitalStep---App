@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Bluetooth, Download, FileJson, Globe2, KeyRound, Moon, RefreshCcw, ShieldCheck, Sun, Trash2, Upload } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import SectionTitle from '@/components/sv/SectionTitle';
 import Panel from '@/components/sv/Panel';
@@ -25,18 +25,23 @@ import {
 import { fmtDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-const OWNED = [
-  ['activities', 'Activity'],
-  ['measurements', 'Measurement'],
-  ['energy', 'EnergyLog'],
-  ['goals', 'Goal'],
-  ['achievements', 'Achievement'],
-  ['notes', 'HealthNote'],
-  ['contacts', 'EmergencyContact'],
-  ['safety', 'SafetyEvent'],
-  ['deviceEvents', 'DeviceEvent'],
-  ['devices', 'ShoeDevice'],
-  ['posts', 'Post'],
+const BACKUP_TABLES = [
+  'shoe_devices',
+  'activities',
+  'measurements',
+  'energy_logs',
+  'device_events',
+  'health_notes',
+  'safety_events',
+  'emergency_contacts',
+  'goals',
+  'achievements',
+  'challenges',
+  'challenge_participants',
+  'posts',
+  'post_likes',
+  'comments',
+  'reports',
 ];
 
 export default function Profile() {
@@ -68,10 +73,37 @@ export default function Profile() {
   }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!operatorId) return;
-    base44.entities.ShoeDevice.filter({ operator_id: operatorId }, { sort: '-last_seen', limit: 5 })
-      .then((page) => setDevices(page.items || []))
-      .catch(() => {});
+    if (!operatorId || !supabase) {
+      setDevices([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadDevices = async () => {
+      try {
+        const { data, error: queryError } = await supabase
+          .from('shoe_devices')
+          .select('*')
+          .eq('operator_id', operatorId)
+          .order('last_seen', { ascending: false })
+          .limit(5);
+
+        if (queryError) throw queryError;
+        if (!cancelled) setDevices(data ?? []);
+      } catch (err) {
+        if (!cancelled) {
+          setDevices([]);
+          setError(err?.message || 'Falha ao carregar dispositivos.');
+        }
+      }
+    };
+
+    loadDevices();
+
+    return () => {
+      cancelled = true;
+    };
   }, [operatorId, ble.status]);
 
   const save = async () => {
@@ -81,74 +113,88 @@ export default function Profile() {
   };
 
   const exportAll = async () => {
-    if (!operatorId) return;
+    if (!operatorId || !supabase) {
+      setError('Autenticação ou conexão com Supabase indisponível.');
+      return;
+    }
+
     setError(null);
+    setMessage(null);
+
     try {
-      const payload = { app: 'StepVolt', version: 1, exported_at: new Date().toISOString(), profile: null, data: {} };
-      const rows = await base44.entities.StepVoltProfile.filter({ operator_id: operatorId });
-      payload.profile = rows[0] || null;
-      await Promise.all(
-        OWNED.map(async ([key, entity]) => {
-          const page = await base44.entities[entity].filter({ operator_id: operatorId }, { limit: 500 });
-          payload.data[key] = page.items || [];
-        }),
-      );
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const payload = {
+        app: 'StepVolt',
+        version: 2,
+        exported_at: new Date().toISOString(),
+        profile: null,
+        data: {},
+      };
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('stepvolt_profiles')
+        .select('*')
+        .eq('operator_id', operatorId)
+        .maybeSingle();
+
+      if (profileError) throw profileError;
+      payload.profile = profileData;
+
+      for (const table of BACKUP_TABLES) {
+        const rows = [];
+        const pageSize = 1000;
+        let offset = 0;
+
+        while (true) {
+          const { data, error: queryError } = await supabase
+            .from(table)
+            .select('*')
+            .eq('operator_id', operatorId)
+            .range(offset, offset + pageSize - 1);
+
+          if (queryError) {
+            throw new Error(`Falha ao exportar ${table}: ${queryError.message}`);
+          }
+
+          const batch = data ?? [];
+          rows.push(...batch);
+
+          if (batch.length < pageSize) break;
+          offset += pageSize;
+        }
+
+        payload.data[table] = rows;
+      }
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json',
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+
       a.href = url;
       a.download = `stepvolt-backup-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
+
       setTimeout(() => URL.revokeObjectURL(url), 2000);
-      setMessage('Backup exportado com todos os registros deste operador.');
+      setMessage('Backup exportado com os registros próprios das 17 tabelas.');
     } catch (err) {
       setError(err?.message || 'Falha ao exportar dados.');
-    } finally {
-      setTimeout(() => setMessage(null), 4000);
     }
   };
 
-  const importBackup = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file || !operatorId) return;
-    setError(null);
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      if (parsed?.app !== 'StepVolt' || !parsed.data || typeof parsed.data !== 'object') {
-        throw new Error('Arquivo não é um backup válido do StepVolt.');
-      }
-      let imported = 0;
-      await Promise.all(
-        OWNED.map(async ([key, entity]) => {
-          const list = Array.isArray(parsed.data[key]) ? parsed.data[key].slice(0, 500) : [];
-          if (!list.length) return;
-          const cleaned = list.map(({ id, created_by_id, created_date, updated_date, ...rest }) => ({
-            ...rest,
-            operator_id: operatorId,
-          }));
-          await base44.entities[entity].bulkCreate(cleaned);
-          imported += cleaned.length;
-        }),
-      );
-      setMessage(`Backup importado: ${imported} registros restaurados neste operador.`);
-    } catch (err) {
-      setError(err?.message || 'Não foi possível importar o arquivo.');
-    } finally {
-      if (fileRef.current) fileRef.current.value = '';
-      setTimeout(() => setMessage(null), 5000);
-    }
+  const importBackup = () => {
+    if (fileRef.current) fileRef.current.value = '';
+    setError(
+      'Importação temporariamente desativada. A restauração precisa validar os IDs e relacionamentos antes de gravar os dados.'
+    );
   };
 
   const eraseAll = async () => {
-    if (!operatorId) return;
-    await Promise.all(
-      OWNED.map(([, entity]) => base44.entities[entity].deleteMany({ operator_id: operatorId }).catch(() => {})),
+    setError(
+      'Limpeza temporariamente desativada. Ela será habilitada após a criação de uma operação transacional no banco.'
     );
-    await patchProfile({ onboarded: false });
-    navigate('/onboarding', { replace: true });
   };
 
   const toggle = (key) => (
@@ -248,7 +294,7 @@ export default function Profile() {
                   </DialogHeader>
                   <div className="space-y-3 text-[11.5px] leading-relaxed text-muted-foreground">
                     <p><span className="text-foreground">Quais dados tratamos:</span> métricas biométricas recebidas do tênis (BPM, SpO₂, temperatura de contato), pressão plantar, energia gerada, sessões de atividade, localização quando você ativa a rota, e suas preferências.</p>
-                    <p><span className="text-foreground">Onde ficam:</span> os registros ficam vinculados a um identificador de operador gerado neste dispositivo, sem nome legal, e-mail ou documento. A exportação gera um arquivo JSON com tudo que está armazenado.</p>
+                    <p><span className="text-foreground">Onde ficam:</span> os registros ficam vinculados à conta autenticada pelo Supabase. O identificador interno da conta controla o acesso aos dados. A exportação gera um arquivo JSON com os registros próprios da conta.</p>
                     <p><span className="text-foreground">Compartilhamento:</span> apenas publicações que você criar com visibilidade pública ou para seguidores. Saúde e rotas não são publicadas automaticamente em nenhuma hipótese.</p>
                     <p><span className="text-foreground">Assistente de IA:</span> recebe um resumo agregado dos seus números (sem identificadores) somente após autorização explícita.</p>
                     <p><span className="text-foreground">Exclusão:</span> a opção de apagar dados remove os registros deste operador e reinicia a configuração inicial.</p>
@@ -285,7 +331,7 @@ export default function Profile() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Última sincronização</span>
-              <span className="num text-foreground">{profile?.updated_date ? fmtDateTime(profile.updated_date) : '—'}</span>
+              <span className="num text-foreground">{profile?.updated_at ? fmtDateTime(profile.updated_at) : '—'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Modo de demonstração</span>
@@ -326,13 +372,13 @@ export default function Profile() {
             <Button variant="outline" size="sm" className="w-full justify-start" onClick={exportAll}>
               <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar backup JSON
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => fileRef.current?.click()}>
+            <Button disabled variant="outline" size="sm" className="w-full justify-start" onClick={() => fileRef.current?.click()}>
               <Upload className="mr-1.5 h-3.5 w-3.5" /> Importar backup validado
             </Button>
             <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={importBackup} />
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full justify-start text-destructive hover:text-destructive">
+                <Button disabled variant="outline" size="sm" className="w-full justify-start text-destructive hover:text-destructive">
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Apagar dados e reiniciar
                 </Button>
               </AlertDialogTrigger>
@@ -358,7 +404,7 @@ export default function Profile() {
           {message && <p className="mt-2 flex items-start gap-1.5 text-[10px] leading-snug text-success"><ShieldCheck className="mt-0.5 h-3 w-3 shrink-0" /> {message}</p>}
           {error && <p className="mt-2 font-mono text-[9px] text-destructive">{error}</p>}
           <p className="mt-2 flex items-start gap-1.5 font-mono text-[8.5px] leading-relaxed text-muted-foreground">
-            <FileJson className="mt-0.5 h-3 w-3 shrink-0" /> O backup contém até 500 registros por tipo e é validado antes da importação.
+            <FileJson className="mt-0.5 h-3 w-3 shrink-0" /> A exportação inclui os registros próprios das tabelas do usuário. Importação e limpeza estão temporariamente desativadas durante a migração.
           </p>
         </Panel>
       </div>

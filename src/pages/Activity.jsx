@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bike, CirclePause, CirclePlay, Flag, Footprints, HeartPulse, MapPin, Mountain, Square, Timer, Zap } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import useTelemetryData from '@/hooks/useTelemetryData';
 import useActivitySession from '@/hooks/useActivitySession';
@@ -54,7 +54,26 @@ export default function ActivityPage() {
     setSaving(true);
     setError(null);
     try {
-      const created = await base44.entities.Activity.create({ operator_id: operatorId, ...summary });
+      if (demoMode) {
+        setError('Sessões de demonstração não são salvas na conta real.');
+        return;
+      }
+
+      if (!supabase) {
+        throw new Error('Supabase não está configurado.');
+      }
+
+      const { data: created, error: saveError } = await supabase
+        .from('activities')
+        .insert({
+          operator_id: operatorId,
+          ...summary,
+        })
+        .select('id')
+        .single();
+
+      if (saveError) throw saveError;
+
       navigate(`/atividade/${created.id}`);
     } catch (err) {
       setError(err?.message || 'Não foi possível salvar a sessão.');

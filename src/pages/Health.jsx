@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, Download, FileText, Info, Plus, TrendingDown, TrendingUp } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import useTelemetryData from '@/hooks/useTelemetryData';
 import SectionTitle from '@/components/sv/SectionTitle';
@@ -48,6 +48,7 @@ export default function Health() {
   const [to, setTo] = useState('');
   const [notes, setNotes] = useState([]);
   const [noteBody, setNoteBody] = useState('');
+  const [noteError, setNoteError] = useState('');
   const [thresholds, setThresholds] = useState({
     bpm_alert_min: profile?.bpm_alert_min ?? 50,
     bpm_alert_max: profile?.bpm_alert_max ?? 165,
@@ -67,11 +68,30 @@ export default function Health() {
   }, [profile?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!operatorId) return undefined;
     let alive = true;
-    base44.entities.HealthNote.filter({ operator_id: operatorId }, { sort: '-note_at', limit: 20 })
-      .then((page) => alive && setNotes(page.items || []))
-      .catch(() => {});
+
+    const loadNotes = async () => {
+      if (!operatorId || !supabase) {
+        setNotes([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('health_notes')
+        .select('*')
+        .eq('operator_id', operatorId)
+        .order('note_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      if (alive) setNotes(data || []);
+    };
+
+    loadNotes().catch((error) => {
+      console.error('Erro ao carregar observações de saúde:', error);
+      if (alive) setNoteError('Não foi possível carregar as observações.');
+    });
+
     return () => {
       alive = false;
     };
@@ -111,15 +131,30 @@ export default function Health() {
   const meta = META[metric];
 
   const addNote = async () => {
-    if (!noteBody.trim() || !operatorId) return;
-    const created = await base44.entities.HealthNote.create({
-      operator_id: operatorId,
-      body: noteBody.trim(),
-      note_at: new Date().toISOString(),
-      metric,
-    });
-    setNotes((prev) => [created, ...prev]);
-    setNoteBody('');
+    if (!noteBody.trim() || !operatorId || !supabase) return;
+
+    setNoteError('');
+
+    try {
+      const { data: created, error } = await supabase
+        .from('health_notes')
+        .insert({
+          operator_id: operatorId,
+          body: noteBody.trim(),
+          note_at: new Date().toISOString(),
+          metric,
+        })
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      setNotes((prev) => [created, ...prev].slice(0, 20));
+      setNoteBody('');
+    } catch (error) {
+      console.error('Erro ao salvar observação de saúde:', error);
+      setNoteError(error?.message || 'Não foi possível salvar a observação.');
+    }
   };
 
   const saveThresholds = async () => {
@@ -311,9 +346,10 @@ export default function Health() {
             placeholder="Ex.: leitura após subida íngreme; sensor reposicionado."
             className="min-h-[64px] text-xs"
           />
-          <Button size="sm" variant="outline" className="mt-2 w-full" onClick={addNote} disabled={!noteBody.trim()}>
+          <Button size="sm" variant="outline" className="mt-2 w-full" onClick={addNote} disabled={!noteBody.trim() || !operatorId}>
             <Plus className="mr-1.5 h-3.5 w-3.5" /> Registrar observação
           </Button>
+          {noteError && <p role="alert" className="mt-2 text-xs text-destructive">{noteError}</p>}
           <div className="mt-3 max-h-40 space-y-1.5 overflow-y-auto pr-1">
             {notes.length === 0 && <p className="text-[11px] text-muted-foreground">Nenhuma observação registrada.</p>}
             {notes.map((n) => (

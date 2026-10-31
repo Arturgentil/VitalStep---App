@@ -1,27 +1,41 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import { supabase } from "@/lib/supabase";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    if (!supabase) {
+      setError("Supabase não configurado. Configure as variáveis de ambiente.");
+      return;
+    }
+
     setLoading(true);
+
     try {
-      await base44.auth.resetPasswordRequest(email);
+      await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+        redirectTo: "stepvolt://auth/callback?next=%2Freset-password",
+      });
+
+      // Não revela se o endereço está cadastrado.
+      setSent(true);
     } catch {
-      // Always show success regardless
+      // Mantém a mesma resposta para evitar enumeração de contas.
+      setSent(true);
     } finally {
       setLoading(false);
-      setSent(true);
     }
   };
 
@@ -36,6 +50,12 @@ export default function ForgotPassword() {
         </Link>
       }
     >
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+          {error}
+        </div>
+      )}
+
       {sent ? (
         <p className="text-sm text-foreground text-center">
           If an account exists with that email, you'll receive a password reset link shortly.
@@ -59,6 +79,7 @@ export default function ForgotPassword() {
               />
             </div>
           </div>
+
           <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
             {loading ? (
               <>

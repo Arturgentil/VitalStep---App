@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Activity, Bluetooth, Cpu, Plug, PlugZap, RotateCcw, ShieldAlert, Trash2, Wifi } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { supabase } from '@/lib/supabase';
 import { useApp } from '@/lib/store';
 import SectionTitle from '@/components/sv/SectionTitle';
 import Panel from '@/components/sv/Panel';
@@ -23,27 +23,74 @@ export default function Device() {
   const [rate, setRate] = useState(1);
   const [feedback, setFeedback] = useState(null);
 
-  const load = async () => {
-    if (!operatorId) return;
-    const [devPage, evPage] = await Promise.all([
-      base44.entities.ShoeDevice.filter({ operator_id: operatorId }, { sort: '-last_seen', limit: 10 }),
-      base44.entities.DeviceEvent.filter({ operator_id: operatorId }, { sort: '-at', limit: 25 }),
+  const load = async (isAlive = () => true) => {
+    if (!operatorId || !supabase || demoMode) {
+      if (isAlive()) {
+        setDevices([]);
+        setEvents([]);
+      }
+      return;
+    }
+
+    const [devResult, eventResult] = await Promise.all([
+      supabase
+        .from('shoe_devices')
+        .select('*')
+        .eq('operator_id', operatorId)
+        .order('last_seen', { ascending: false })
+        .limit(10),
+      supabase
+        .from('device_events')
+        .select('*')
+        .eq('operator_id', operatorId)
+        .order('at', { ascending: false })
+        .limit(25),
     ]);
-    setDevices(devPage.items || []);
-    setEvents(evPage.items || []);
+
+    if (devResult.error) throw devResult.error;
+    if (eventResult.error) throw eventResult.error;
+
+    if (isAlive()) {
+      setDevices(devResult.data || []);
+      setEvents(eventResult.data || []);
+    }
   };
 
   useEffect(() => {
-    load().catch(() => {});
-  }, [operatorId]);
+    let alive = true;
+
+    load(() => alive).catch((err) => {
+      console.error('Erro ao carregar dispositivos:', err);
+      if (alive) setError('Não foi possível carregar o histórico do dispositivo.');
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [operatorId, demoMode]);
 
   useEffect(() => {
-    if (!operatorId || ble.status !== 'connected') return;
-    const sensors = ble.info ? decodeSensors(ble.info.sensor_flags).map((s) => ({ key: s.key, label: s.label, available: s.available })) : [];
+    if (!operatorId || !supabase || demoMode || ble.status !== 'connected') return;
+
+    if (!ble.deviceId) {
+      setError('O dispositivo não forneceu um identificador Bluetooth válido.');
+      return;
+    }
+
+    let alive = true;
+
+    const sensors = ble.info
+      ? decodeSensors(ble.info.sensor_flags).map((s) => ({
+          key: s.key,
+          label: s.label,
+          available: s.available,
+        }))
+      : [];
+
     const payload = {
       operator_id: operatorId,
       name: ble.deviceName || 'StepVolt',
-      bluetooth_id: ble.deviceId || '',
+      bluetooth_id: ble.deviceId,
       firmware_version: ble.info?.firmware_version || '',
       protocol_version: String(ble.info?.protocol_version ?? 1),
       battery_pct: live?.telemetry?.battery_pct ?? null,
@@ -52,11 +99,25 @@ export default function Device() {
       last_seen: new Date().toISOString(),
       sensors,
     };
-    base44.entities.ShoeDevice.filter({ operator_id: operatorId, bluetooth_id: payload.bluetooth_id })
-      .then((rows) => (rows[0] ? base44.entities.ShoeDevice.update(rows[0].id, payload) : base44.entities.ShoeDevice.create(payload)))
-      .then(() => load())
-      .catch(() => {});
-  }, [ble.status]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const saveDevice = async () => {
+      const { error: saveError } = await supabase
+        .from('shoe_devices')
+        .upsert(payload, { onConflict: 'operator_id,bluetooth_id' });
+
+      if (saveError) throw saveError;
+      if (alive) await load(() => alive);
+    };
+
+    saveDevice().catch((err) => {
+      console.error('Erro ao salvar dispositivo:', err);
+      if (alive) setError('Não foi possível registrar o dispositivo conectado.');
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [ble.status, operatorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async (label, fn) => {
     setBusy(label);
@@ -78,8 +139,17 @@ export default function Device() {
     });
 
   const removeDevice = async (id) => {
-    await base44.entities.ShoeDevice.delete(id);
-    setDevices((d) => d.filter((x) => x.id !== id));
+    if (!operatorId || !supabase) return;
+
+    const { error: deleteError } = await supabase
+      .from('shoe_devices')
+      .delete()
+      .eq('id', id)
+      .eq('operator_id', operatorId);
+
+    if (deleteError) throw deleteError;
+
+    setDevices((current) => current.filter((device) => device.id !== id));
   };
 
   const sensors = ble.info ? decodeSensors(ble.info.sensor_flags) : [];
@@ -179,7 +249,7 @@ export default function Device() {
               </li>
             ))}
           </ul>
-          <Button variant="ghost" size="sm" className="mt-3 w-full" onClick={() => load()}>
+          <Button variant="ghost" size="sm" className="mt-3 w-full" onClick={() => load().catch((err) => setError(err?.message || "Falha ao atualizar histórico."))}>
             <Activity className="mr-1.5 h-3.5 w-3.5" /> Atualizar histórico
           </Button>
         </Panel>
@@ -219,7 +289,7 @@ export default function Device() {
               <div key={d.id} className="sv-panel-tight p-3">
                 <div className="flex items-center justify-between">
                   <p className="truncate text-[12px] font-medium">{d.name}</p>
-                  <button type="button" onClick={() => removeDevice(d.id)} className="text-muted-foreground hover:text-destructive" aria-label="Remover dispositivo">
+                  <button type="button" onClick={() => run("remove", () => removeDevice(d.id))} className="text-muted-foreground hover:text-destructive" aria-label="Remover dispositivo">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
