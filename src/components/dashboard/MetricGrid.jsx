@@ -4,7 +4,7 @@ import { GripVertical } from 'lucide-react';
 import MetricCard from '@/components/sv/MetricCard';
 import { cn } from '@/lib/utils';
 
-const KEY = 'stepvolt.card_order';
+const KEY = 'vitalstep.card_order';
 
 export default function MetricGrid({ cards }) {
   const keys = cards.map((c) => c.key);

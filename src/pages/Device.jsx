@@ -89,7 +89,7 @@ export default function Device() {
 
     const payload = {
       operator_id: operatorId,
-      name: ble.deviceName || 'StepVolt',
+      name: ble.deviceName || 'VitalStep',
       bluetooth_id: ble.deviceId,
       firmware_version: ble.info?.firmware_version || '',
       protocol_version: String(ble.info?.protocol_version ?? 1),
@@ -255,7 +255,7 @@ export default function Device() {
         </Panel>
 
         <Panel title="Digital Twin" subtitle="mapa de sensores declarados" className="lg:col-span-1">
-          <DigitalTwin sensors={demoMode && !sensors.length ? decodeSensors(0b111111) : sensors} active={ble.status === 'connected' || demoMode} />
+          <DigitalTwin sensors={demoMode ? decodeSensors(0b111111) : sensors} active={ble.status === 'connected' || demoMode} demo={demoMode} />
         </Panel>
 
         <Panel title="Eventos do enlace" subtitle="registro persistido" className="lg:col-span-1">
@@ -281,7 +281,7 @@ export default function Device() {
           <EmptyState
             icon={Cpu}
             title="Nenhum tênis pareado"
-            description="Ao conectar um StepVolt, o firmware e os sensores ficam registrados aqui para reconexão e diagnóstico."
+            description="Ao conectar um VitalStep, o firmware e os sensores ficam registrados aqui para reconexão e diagnóstico."
           />
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

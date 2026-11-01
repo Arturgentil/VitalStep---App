@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { fmtDate } from '@/lib/format';
 
-const BLOCK_KEY = 'stepvolt.blocked_authors';
+const BLOCK_KEY = 'vitalstep.blocked_authors';
 
 export default function Community() {
   const { operatorId, profile, demoMode } = useApp();
@@ -153,7 +153,7 @@ export default function Community() {
   return (
     <div className="space-y-4">
       <SectionTitle
-        eyebrow="StepVolt Community"
+        eyebrow="VitalStep Community"
         title="Comunidade"
         description="Feed de atividades com privacidade por padrão. Saúde, rotas e localização nunca são publicadas automaticamente."
         right={<StatusPill tone={profile?.public_profile ? 'info' : 'idle'} dot={false}>{profile?.public_profile ? 'perfil público' : 'perfil privado'}</StatusPill>}

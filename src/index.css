@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* StepVolt — deep space command palette (dark first) */
+    /* VitalStep: deep space command palette (dark first) */
     --background: 222 47% 4%;
     --foreground: 195 25% 96%;
     --card: 220 39% 8%;

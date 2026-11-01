@@ -38,7 +38,7 @@ const FLAGS = [
   ['bit 5', 'GNSS', 'Módulo de localização auxiliar'],
 ];
 
-const FIRMWARE = `// StepVolt firmware reference — ESP32 (Arduino core, NimBLE)
+const FIRMWARE = `// VitalStep firmware reference: ESP32 (Arduino core, NimBLE)
 #include <NimBLEDevice.h>
 
 static const char* SVC  = "7a1c0001-6b4e-4f6d-9a2b-5c3d7e8f9a01";
@@ -95,10 +95,10 @@ void publishEnergy(uint32_t powerUw, uint16_t voltageMv, int16_t currentMa,
   enerChar->notify();
 }
 
-// setup(): NimBLEDevice::init("StepVolt-Shoe-01");
+// setup(): NimBLEDevice::init("VitalStep-Shoe-01");
 // server->createService(SVC); teleChar->setNotifyProperty(true);
 // enerChar->setNotifyProperty(true); cmdChar->setWriteProperty(true);
-// advertising->setName("StepVolt-Shoe-01"); advertising->start();`;
+// advertising->setName("VitalStep-Shoe-01"); advertising->start();`;
 
 const STATUS = {
   done: [
@@ -148,7 +148,7 @@ export default function Docs() {
               ['Telemetria (notify)', TELEMETRY_CHAR_UUID],
               ['Energia (notify)', ENERGY_CHAR_UUID],
               ['Comando (write)', COMMAND_CHAR_UUID],
-              ['Nome anunciado', 'StepVolt-Shoe-…'],
+              ['Nome anunciado', 'VitalStep-Shoe-…'],
             ].map(([label, value]) => (
               <div key={label} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/60 px-2 py-1.5">
                 <span className="text-muted-foreground">{label}</span>
@@ -235,7 +235,7 @@ export default function Docs() {
               {[
                 'Instale o Arduino IDE e o pacote de placas ESP32 (Board Manager).',
                 'Adicione a biblioteca NimBLE-Arduino em Library Manager.',
-                'Configure o nome anunciado como StepVolt-Shoe-01 (ou o seu identificador).',
+                'Configure o nome anunciado como VitalStep-Shoe-01 (ou o seu identificador).',
                 'Crie o serviço e as três características com UUIDs desta página.',
                 'Publique TELEMETRY a 1 Hz, ENERGY junto da leitura do piezo e PRESSURE ao fim de cada passada.',
                 'Envie DEVICE_INFO ao conectar, informando versão de firmware e bits de sensores.',
@@ -250,17 +250,18 @@ export default function Docs() {
             </ol>
           </Panel>
 
-          <Panel title="Contrato com o backend" subtitle="entidades Base44 usadas como fonte remota">
+          <Panel title="Contrato com o backend" subtitle="autenticação e persistência no Supabase">
             <div className="grid gap-1.5 sm:grid-cols-2">
               {[
-                ['StepVoltProfile', 'preferências, metas, consentimentos'],
-                ['Activity', 'sessões com amostras e rota'],
-                ['Measurement', 'BPM, SpO₂, temperatura'],
-                ['EnergyLog', 'potência, energia, tensão'],
-                ['ShoeDevice / DeviceEvent', 'pareamentos e eventos do enlace'],
-                ['Goal / Achievement', 'progressão'],
-                ['Post / Comment / Challenge', 'comunidade'],
-                ['EmergencyContact / SafetyEvent', 'segurança'],
+                ['vitalstep_profiles', 'preferências, metas, consentimentos'],
+                ['activities', 'sessões com amostras e rota'],
+                ['measurements / health_notes', 'BPM, SpO₂, temperatura e observações'],
+                ['energy_logs', 'potência, energia, tensão'],
+                ['shoe_devices / device_events', 'pareamentos e eventos do enlace'],
+                ['goals / achievements', 'progressão'],
+                ['posts / comments / reports', 'comunidade e denúncias'],
+                ['challenges / challenge_participants', 'desafios e participantes'],
+                ['emergency_contacts / safety_events', 'segurança'],
               ].map(([name, use]) => (
                 <div key={name} className="rounded-md border border-border/60 px-2 py-1.5">
                   <p className="font-mono text-[9.5px] text-foreground">{name}</p>
@@ -269,7 +270,7 @@ export default function Docs() {
               ))}
             </div>
             <p className="mt-2 font-mono text-[9px] leading-relaxed text-muted-foreground">
-              Assistente: POST na função stepvoltIntelligence com {'{ question, context }'} — contexto agregado, sem identificadores.
+              Assistente no Base44: POST na função vitalstepIntelligence com {'{ question, context }'}: contexto agregado, sem identificadores.
             </p>
           </Panel>
         </div>

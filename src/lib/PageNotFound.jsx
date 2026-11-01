@@ -1,54 +1,29 @@
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import BrandLogo from '@/components/brand/BrandLogo';
 
 export default function PageNotFound() {
-  const location = useLocation();
-  const pageName = location.pathname.substring(1);
+  const { pathname } = useLocation();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-      <div className="max-w-md w-full">
-        <div className="text-center space-y-6">
-          <div className="space-y-2">
-            <h1 className="text-7xl font-light text-slate-300">404</h1>
-            <div className="h-0.5 w-16 bg-slate-200 mx-auto"></div>
-          </div>
-
-          <div className="space-y-3">
-            <h2 className="text-2xl font-medium text-slate-800">
-              Page Not Found
-            </h2>
-            <p className="text-slate-600 leading-relaxed">
-              The page{' '}
-              <span className="font-medium text-slate-700">
-                "{pageName}"
-              </span>{' '}
-              could not be found in this application.
-            </p>
-          </div>
-
-          <div className="pt-6">
-            <button
-              onClick={() => window.location.href = '/'}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
-              Go Home
-            </button>
-          </div>
+    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-12">
+      <div className="w-full max-w-md space-y-8 text-center">
+        <BrandLogo symbolClassName="h-16 w-16" />
+        <div className="space-y-3">
+          <p className="font-mono text-6xl font-light text-primary">404</p>
+          <h1 className="text-2xl font-semibold text-foreground">Página não encontrada</h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            O endereço <span className="break-all font-medium text-foreground">{pathname}</span> não existe no VitalStep.
+          </p>
         </div>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Voltar ao início
+        </Link>
       </div>
-    </div>
+    </main>
   );
 }

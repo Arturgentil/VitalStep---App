@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bluetooth, Radio, Thermometer } from 'lucide-react';
-import StepVoltCore from '@/components/visuals/StepVoltCore';
+import VitalStepCore from '@/components/visuals/VitalStepCore';
 import DigitalTwin from '@/components/visuals/DigitalTwin';
 import StatusPill from '@/components/sv/StatusPill';
 import { decodeSensors } from '@/lib/ble/protocol';
@@ -18,7 +18,7 @@ export default function CorePanel({ ble, live, demo }) {
   return (
     <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-center">
       <div className="flex flex-col items-center">
-        <StepVoltCore connected={connected} powerMw={power} bpm={live?.telemetry?.bpm} demo={demo} size={190} />
+        <VitalStepCore connected={connected} powerMw={power} bpm={live?.telemetry?.bpm} demo={demo} size={190} />
       </div>
 
       <div className="space-y-3">
@@ -28,7 +28,7 @@ export default function CorePanel({ ble, live, demo }) {
           </StatusPill>
           <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
             <Bluetooth className="h-3 w-3" />
-            {ble.deviceName || (demo ? 'StepVolt-DEMO' : 'nenhum tênis')}
+            {ble.deviceName || (demo ? 'VitalStep-DEMO' : 'nenhum tênis')}
           </span>
           <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
             <Radio className="h-3 w-3" />
@@ -36,7 +36,7 @@ export default function CorePanel({ ble, live, demo }) {
           </span>
         </div>
 
-        <DigitalTwin sensors={sensors} active={connected || demo} />
+        <DigitalTwin sensors={sensors} active={connected || demo} demo={demo} />
 
         <div className="grid grid-cols-3 gap-2 font-mono text-[10px]">
           <div className="sv-panel-tight px-2 py-1.5">

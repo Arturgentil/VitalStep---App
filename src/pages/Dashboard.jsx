@@ -141,7 +141,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-4">
       <SectionTitle
-        eyebrow="StepVolt Command Center"
+        eyebrow="VitalStep Command Center"
         title={`${greeting()}, ${profile?.display_name?.split(' ')[0] || 'operador'}`}
         description={`${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })} · ${distanceToday > 0 ? `${fmtDistance(distanceToday)} hoje` : 'nenhuma atividade registrada hoje'}`}
         right={
@@ -158,9 +158,9 @@ export default function Dashboard() {
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
-          <Panel title="Núcleo StepVolt" subtitle="corpo ↔ tênis ↔ energia ↔ aplicativo">
+          <Panel title="Núcleo VitalStep" subtitle="corpo ↔ tênis ↔ energia ↔ aplicativo">
             <CorePanel ble={ble} live={live} demo={demo} />
           </Panel>
 

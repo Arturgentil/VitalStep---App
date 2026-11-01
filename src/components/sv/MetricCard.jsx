@@ -16,7 +16,7 @@ const QUALITY = {
 };
 
 /**
- * Every metric on StepVolt is rendered through this card so unit, last update,
+ * Every metric on VitalStep is rendered through this card so unit, last update,
  * availability and signal quality are never hidden from the operator.
  */
 export default function MetricCard({

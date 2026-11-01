@@ -1,5 +1,5 @@
 {
-  "name": "StepVolt",
+  "name": "VitalStep",
   "site": {
     "installCommand": "npm install",
     "buildCommand": "npm run build",

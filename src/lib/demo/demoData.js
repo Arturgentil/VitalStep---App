@@ -1,5 +1,5 @@
 /**
- * StepVolt — demonstration dataset.
+ * VitalStep: demonstration dataset.
  * Everything produced here is synthetic and MUST always be labelled as demo.
  * It never touches the database and never mixes with real device data.
  */
@@ -18,6 +18,14 @@ function mulberry32(seed) {
 }
 
 const KINDS = ['walk', 'run', 'trail', 'custom'];
+const DEMO_ROUTE_POINTS = [
+  [-16.010791, -48.075042],
+  [-16.011021, -48.074597],
+  [-16.010600, -48.074343],
+  [-16.011571, -48.072730],
+  [-16.010485, -48.071998],
+  [-16.009281, -48.071225],
+];
 
 export function buildDemoDataset(seed = 20261028) {
   const rand = mulberry32(seed);
@@ -45,18 +53,13 @@ export function buildDemoDataset(seed = 20261028) {
         power_mw: Math.round((3 + rand() * 5) * 10) / 10,
       });
     }
-    const route = [];
-    if (kind !== 'custom') {
-      const lat0 = -23.5615 + rand() * 0.02;
-      const lng0 = -46.6565 + rand() * 0.02;
-      for (let p = 0; p < 24; p += 1) {
-        route.push({
-          lat: +(lat0 + Math.sin(p / 3) * 0.0016 + p * 0.00004).toFixed(6),
-          lng: +(lng0 + Math.cos(p / 4) * 0.0018 + p * 0.00005).toFixed(6),
-          t: base.getTime() + p * (duration * 1000) / 24,
-        });
-      }
-    }
+    const route = kind === 'custom'
+      ? []
+      : DEMO_ROUTE_POINTS.map(([lat, lng], index) => ({
+        lat,
+        lng,
+        t: base.getTime() + index * (duration * 1000) / (DEMO_ROUTE_POINTS.length - 1),
+      }));
     activities.push({
       id: `demo-${d}-${activities.length}`,
       kind,

@@ -1,5 +1,5 @@
 /**
- * StepVolt — trajectory helpers. Pure geometry, no map or network dependency.
+ * VitalStep: trajectory helpers. Pure geometry, no map or network dependency.
  */
 
 const EARTH_R = 6371000;

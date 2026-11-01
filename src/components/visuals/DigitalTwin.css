@@ -1,0 +1,41 @@
+.digital-twin-stage {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 55% 58%, hsl(var(--primary) / 0.04), transparent 64%);
+}
+
+.digital-twin-gyro-rings {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.digital-twin-marker--demo .digital-twin-gyro-rings {
+  animation: digital-twin-sensor-rotation 8s linear infinite;
+}
+
+.digital-twin-marker--demo .digital-twin-gyro-core {
+  animation: digital-twin-sensor-motion 4s ease-in-out infinite;
+}
+
+@keyframes digital-twin-sensor-rotation {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes digital-twin-sensor-motion {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(2px, -1px); }
+  50% { transform: translate(-1px, 2px); }
+  75% { transform: translate(-2px, -1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .digital-twin-marker--demo .digital-twin-gyro-rings,
+  .digital-twin-marker--demo .digital-twin-gyro-core {
+    animation: none;
+  }
+}
+
+html[data-reduced-motion="true"] .digital-twin-marker--demo .digital-twin-gyro-rings,
+html[data-reduced-motion="true"] .digital-twin-marker--demo .digital-twin-gyro-core {
+  animation: none;
+}

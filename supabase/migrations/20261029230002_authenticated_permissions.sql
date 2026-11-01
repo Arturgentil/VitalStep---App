@@ -8,7 +8,7 @@ GRANT USAGE ON SCHEMA public TO authenticated;
 
 -- Permissões necessárias para as tabelas protegidas por RLS.
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
-    public.stepvolt_profiles,
+    public.vitalstep_profiles,
     public.shoe_devices,
     public.activities,
     public.measurements,
